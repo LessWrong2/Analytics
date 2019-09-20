@@ -443,17 +443,14 @@ def calculate_vote_stats_for_content(votes_df):
         if col not in vote_type_stats.columns:
             vote_type_stats[col] = 0
 
+    vote_type_stats = vote_type_stats[['smallUpvote', 'smallDownvote', 'bigUpvote', 'bigDownvote']]
     vote_type_stats['num_votes'] = vote_type_stats.sum(axis=1)
     vote_type_stats['percent_downvotes'] = (
             vote_type_stats[['smallDownvote', 'bigDownvote']].sum(axis=1) / vote_type_stats['num_votes']).round(2)
     vote_type_stats['percent_bigvotes'] = (
             vote_type_stats[['bigUpvote', 'bigDownvote']].sum(axis=1) / vote_type_stats['num_votes']).round(2)
-    vote_date_stats = votes_df.groupby('documentId').apply(
-        lambda x: pd.Series(data={'most_recent_vote': x['votedAt'].max()}))
 
-    vote_stats = vote_type_stats.merge(vote_date_stats, left_index=True, right_index=True)
-
-    return vote_stats
+    return vote_type_stats
 
 
 def calculate_vote_stats_for_users(votes_df):
