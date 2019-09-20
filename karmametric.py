@@ -4,7 +4,7 @@ import plotly
 import plotly.plotly as py
 import plotly.graph_objs as go
 from plotly.offline import init_notebook_mode, iplot
-from gspread_pandas import Spread, Client
+from gspread_pandas import Spread
 from utils import timed, get_config_field
 
 
@@ -64,47 +64,51 @@ def compute_karma_metric(dfs):
     return allVotes, baseScoresD4, docScores
 
 
-def create_trend_frame():
+def create_trend_frame(initial_value, freq):
+    def rate_scaling(freq, value):
+        days_in_period = {'D': 1, 'W': 7, 'M': 365 / 12, 'Y': 365}
+        return value ** (days_in_period[freq] / 7)
+
     def growth_series(trend_range, growth_rate, initial_value):
         return [initial_value * growth_rate ** i for i in range(len(trend_range))]
 
-    initial_value = 550  # average value of week ending 6-30 ### votes_ts[votes_ts['votedAt']=='2019-06-30']['power'].iloc[-1]
-    trend_range = pd.date_range('2019-06-30', '2020-06-30', freq='D')
+    trend_range = pd.date_range('2019-06-30', '2020-06-30', freq=freq)
     trends = pd.DataFrame(
         data={
             'date': trend_range,
-            '5%': growth_series(trend_range, 1.0068, initial_value),
-            '7%': growth_series(trend_range, 1.0094, initial_value),
-            '10%': growth_series(trend_range, 1.0133, initial_value)
+            '5%': growth_series(trend_range, rate_scaling(freq, 1.05), initial_value),
+            '7%': growth_series(trend_range, rate_scaling(freq, 1.07), initial_value),
+            '10%': growth_series(trend_range, rate_scaling(freq, 1.10), initial_value)
         }
     ).round(1)
 
     return trends
 
 
-def plot_karma_metric(allVotes, online=False):
-    pr = 'D'
+def plot_karma_metric(allVotes, online=False, pr='D', ma=7, start_date='2019-04-01', end_date='2019-10-01'):
     votes_ts = allVotes.set_index('votedAt').resample(pr)['effect'].sum()
     votes_ts = votes_ts.reset_index().iloc[:-1]
-    votes_ts_ma = votes_ts.set_index('votedAt')['effect'].rolling(7).mean().round(1).reset_index()
+    votes_ts_ma = votes_ts.set_index('votedAt')['effect'].rolling(ma).mean().round(1).reset_index()
 
-    trends = create_trend_frame()
+    days_in_period = {'D': 1, 'W': 7, 'M': 365 / 12, 'Y': 365}
+
+    trends = create_trend_frame(days_in_period[pr] * 550, pr)
 
     # plotly section
     date_col = 'votedAt'
     title = 'effect'
     color = 'red'
-    size = (600, 500)
-    pr_dict = {'D': 'daily', 'W': 'weekly'}
-    start_date = '2019-06-01'
-    end_date = '2019-09-01'
+    size = (1200, 500)
+
+    pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Y': 'yearly'}
+    pr_dict2 = {'D': 'day', 'W': 'week', 'M': 'month', 'Y': 'year'}
 
     data = [
         go.Scatter(x=votes_ts[date_col], y=votes_ts['effect'].round(1), line={'color': color, 'width': 0.5},
-                   name='daily-value',
+                   name='{}-value'.format(pr_dict[pr]),
                    hoverinfo='x+y+name'),
         go.Scatter(x=votes_ts_ma[date_col], y=votes_ts_ma['effect'].round(1), line={'color': color, 'width': 4},
-                   name='average of last 7 days',
+                   name='average of last {} {}s'.format(ma, pr_dict2[pr]),
                    hoverinfo='x+y+name'),
         go.Scatter(x=trends['date'], y=trends['5%'], line={'color': 'grey', 'width': 1, 'dash': 'dash'}, mode='lines',
                    name='5% growth', hoverinfo='skip'),
@@ -116,7 +120,7 @@ def plot_karma_metric(allVotes, online=False):
 
     layout = go.Layout(
         autosize=True, width=size[0], height=size[1],
-        title='Net Karma, 4x Downvote, Daily, 1.2 item exponent',
+        title='Net Karma, 4x Downvote, {}, 1.2 item exponent'.format(pr_dict[pr].capitalize()),
         xaxis={'range': [start_date, end_date], 'title': None},
         yaxis={'range': [0, votes_ts.set_index(date_col)[start_date:]['effect'].max() * 1.1],
                'title': 'net karma'}
@@ -127,10 +131,13 @@ def plot_karma_metric(allVotes, online=False):
     plotly.tools.set_credentials_file(username='darkruby501', api_key='lnzgPwQick1lSV1eztol')
     init_notebook_mode(connected=True)
 
+    filename = 'Net Karma Metric - {}'.format(pr_dict[pr].capitalize())
     if online:
-        py.iplot(fig, filename='Net Karma Metric')
+        py.iplot(fig, filename=filename)
     else:
-        iplot(fig, filename='Net Karma Metric')
+        iplot(fig, filename=filename)
+
+    return votes_ts
 
 
 def agg_votes_to_period(dfvv, pr='D', start_date='2019-06'):
@@ -277,7 +284,6 @@ def agg_votes_to_posts(dfvv, dfp, dfc, pr='D', start_date='2019-06-01'):
 
     return dd
 
-
 @timed
 def run_metric_pipeline(dfs, online=False, sheets=False, plots=False):
     dfp = dfs['posts']
@@ -286,7 +292,12 @@ def run_metric_pipeline(dfs, online=False, sheets=False, plots=False):
     allVotes, baseScoresD4, docScores = compute_karma_metric(dfs)
 
     if plots:
-        plot_karma_metric(allVotes, online=online)
+
+        start_date = '2019-04-01'
+        end_date = '2019-10-01'
+
+        plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='D', ma=7)
+        plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='W', ma=4)
 
     if sheets:
         spreadsheet_name = get_config_field('GSHEETS', 'spreadsheet_name')
