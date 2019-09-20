@@ -70,7 +70,7 @@ def prepare_posts(dfp):
         'userId',
         'postedAt',
         'username',
-        'displayName'
+        'displayName',
         'title',
         'af',
         'baseScore',
@@ -87,7 +87,7 @@ def prepare_posts(dfp):
         'num_distinct_viewers',
         'num_distinct_commenters',
         'wordCount',
-        'num_votes'
+        'num_votes',
         'smallUpvote',
         'bigUpvote',
         'smallDownvote',
@@ -102,7 +102,6 @@ def prepare_posts(dfp):
         'frontpaged',
         'frontpageDate',
         'curatedDate',
-        'moderationGuidelinesHtmlBody',
         'status',
         'legacySpam',
         'authorIsUnreviewed',
