@@ -34,11 +34,11 @@ def prepare_users(dfu):
                       'total_comments',
                       'earliest_comment',
                       'most_recent_comment',
-                      'total_votes',
+                      'num_votes',
                       'most_recent_vote',
                       'earliest_vote',
                       'percent_downvotes',
-                      'percent_upvotes_big',
+                      'percent_bigvotes',
                       'most_recent_view',
                       'earliest_view',
                       'num_distinct_posts_viewed',
@@ -69,7 +69,9 @@ def prepare_posts(dfp):
         'userId',
         'postedAt',
         'username',
+        'displayName'
         'title',
+        'af',
         'baseScore',
         'afBaseScore',
         'score',
@@ -80,14 +82,17 @@ def prepare_posts(dfp):
         'viewCountLogged',
         'clickCount',
         'commentCount',
+        'num_comments_rederived',
         'num_distinct_viewers',
         'num_distinct_commenters',
         'wordCount',
+        'num_votes'
         'smallUpvote',
         'bigUpvote',
         'smallDownvote',
         'bigDownvote',
         'percent_downvotes',
+        'percent_bigvotes',
         'url',
         'slug',
         'canonicalCollectionSlug',
@@ -102,6 +107,7 @@ def prepare_posts(dfp):
         'authorIsUnreviewed',
         'most_recent_comment',
         'userAgent',
+        'createdAt',
     ]
 
     posts = dfp[posts_sql_cols].sort_values('postedAt', ascending=False)
@@ -114,23 +120,28 @@ def prepare_comments(dfc):
         '_id',
         'userId',
         'username',
+        'displayName',
         'postId',
         'postedAt',
+        'af',
         'baseScore',
         'score',
         'answer',
         'parentAnswerId',
+        'parentCommentId',
         'wordCount',
         'top_level',
         'gw',
         'num_votes',
         'percent_downvotes',
+        'percent_bigvotes',
         'smallUpvote',
         'bigUpvote',
         'smallDownvote',
         'bigDownvote',
         'userAgent',
         'createdAt'
+        'deleted'
     ]
 
     comments = dfc[comments_sql_cols].sort_values('postedAt', ascending=False)
