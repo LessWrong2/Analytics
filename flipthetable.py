@@ -2,10 +2,11 @@ import pandas as pd
 import configparser
 import sqlalchemy as sqa
 from setthetable import table_creation_commands
-from utils import timed
+from utils import timed, get_config_field
 
 from IPython.display import display
 
+BASE_PATH = get_config_field('PATHS','base')
 
 def prepare_users(dfu):
     users_sql_cols = ['_id',
@@ -170,8 +171,7 @@ def prep_frames_for_db(dfs):
     }
 
     [prep_funcs[coll](dfs[coll])
-         .to_csv('/home/ubuntu/lesswrong-analytics/analytics_data_files/export/{}.csv'.format(coll),
-                                                                                       index=False) for coll in
+         .to_csv(BASE_PATH + 'export/{}.csv'.format(coll), index=False) for coll in
      ['users', 'posts', 'comments']]
 
 
@@ -195,14 +195,12 @@ def create_tables(tables, conn):
 
 def load_csvs_to_pg(date_str, conn):
     for coll in ['votes', 'views']:
-        sql = "COPY {} FROM '/home/ubuntu/lesswrong-analytics/analytics_data_files/processed/{}/{}.csv' DELIMITER ',' CSV HEADER;".format(
-            coll, date_str, coll)
+        sql = "COPY {} FROM '{}processed/{}/{}.csv' DELIMITER ',' CSV HEADER;".format(coll, BASE_PATH, date_str, coll)
         print(sql)
         conn.execute(sql)
 
     for coll in ['posts', 'comments', 'users']:
-        sql = "COPY {} FROM '/home/ubuntu/lesswrong-analytics/analytics_data_files/export/{}.csv' DELIMITER ',' CSV HEADER;".format(
-            coll, coll)
+        sql = "COPY {} FROM '{}export/{}.csv' DELIMITER ',' CSV HEADER;".format(coll, BASE_PATH, coll)
         print(sql)
         conn.execute(sql)
 
