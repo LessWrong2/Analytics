@@ -470,6 +470,7 @@ def calculate_vote_stats_for_users(votes_df):
         if col not in vote_type_stats.columns:
             vote_type_stats[col] = 0
 
+    vote_type_stats = vote_type_stats[['smallUpvote', 'smallDownvote', 'bigUpvote', 'bigDownvote']]
     vote_type_stats['num_votes'] = vote_type_stats.sum(axis=1)
 
     vote_type_stats['percent_downvotes'] = (
