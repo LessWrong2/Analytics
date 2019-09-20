@@ -141,7 +141,7 @@ def prepare_comments(dfc):
         'smallDownvote',
         'bigDownvote',
         'userAgent',
-        'createdAt'
+        'createdAt',
         'deleted'
     ]
 
