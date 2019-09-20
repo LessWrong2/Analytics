@@ -75,6 +75,7 @@ table_creation_commands = {
         num_distinct_viewers            numeric,
         num_distinct_commenters         numeric,
         word_count                      numeric,
+        num_votes                       numeric,
         small_upvote                    numeric,
         big_upvote                      numeric,
         small_downvote                  numeric,

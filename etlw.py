@@ -450,7 +450,10 @@ def calculate_vote_stats_for_content(votes_df):
     vote_type_stats['percent_bigvotes'] = (
             vote_type_stats[['bigUpvote', 'bigDownvote']].sum(axis=1) / vote_type_stats['num_votes']).round(2)
 
-    return vote_type_stats
+    vote_stats = vote_type_stats.merge(votes_df.groupby('documentId')['votedAt'].max().to_frame('most_recent_vote'),
+                                       left_index=True, right_index=True)
+
+    return vote_stats
 
 
 def calculate_vote_stats_for_users(votes_df):
