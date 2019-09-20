@@ -403,6 +403,7 @@ def clean_raw_votes(votes):
     votes.loc[:, 'voteType'] = votes['voteType'].astype('category')
     votes.loc[:, 'votedAt'] = pd.to_datetime(votes['votedAt'])
     votes.loc[:, 'userId'] = votes['userId'].astype(str)
+    votes = votes.drop(columns=['_id']) # unnecessary and takes up 200Mb
 
     return votes
 
@@ -413,6 +414,7 @@ def clean_raw_views(views):
     views.loc[:, 'createdAt'] = pd.to_datetime(views['createdAt'])
     # views.loc[:, 'name'] = views['name'].astype('category') #only ever contains "post-view"
     # views.loc[:, 'legacy'] = views['legacy'].fillna(False).astype(bool) #never use it, but want to remember it's there
+    views = views.drop(columns=['_id']) # unnecessary and takes up 200Mb
 
     return views
 
