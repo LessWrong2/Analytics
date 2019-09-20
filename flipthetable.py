@@ -1,6 +1,7 @@
 import pandas as pd
 import configparser
 import sqlalchemy as sqa
+from setthetable import table_creation_commands
 from utils import timed
 
 from IPython.display import display
@@ -175,14 +176,23 @@ def prep_frames_for_db(dfs):
      ['users', 'posts', 'comments']]
 
 
-def truncate_tables(tables, conn):
+def truncate_or_drop_tables(tables, conn, drop=False):
     if type(tables) == str:
         tables_str = tables
     else:
         tables_str = ', '.join(tables)
 
-    conn.execute('TRUNCATE {}'.format(tables_str))
+    if drop:
+        conn.execute('DROP TABLE IF EXISTS {}'.format(tables_str))
+    else:
+        conn.execute('TRUNCATE {}'.format(tables_str))
 
+
+def create_tables(tables, conn):
+    if type(tables) == str:
+        tables = [tables]
+
+    [conn.execute(table_creation_commands[table]) for table in tables]
 
 def load_csvs_to_pg(date_str, conn):
     for coll in ['votes', 'views']:
@@ -208,7 +218,7 @@ def run_pg_pandas_transfer(dfs, date_str):
     conn = engine.connect()
     transaction = conn.begin()
     print('truncating postgres tables')
-    truncate_tables(tables, conn)
+    truncate_or_drop_tables(tables, conn, drop=False)
     print('loading csv\'s into postgres db')
     load_csvs_to_pg(date_str, conn)
     transaction.commit()
@@ -222,6 +232,7 @@ def test_db_contents():
     conn = engine.connect()
     _ = [display(pd.read_sql("SELECT * FROM {} LIMIT 3".format(coll), conn)) for coll in tables]
     conn.close()
+
 
 
 

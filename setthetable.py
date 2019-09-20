@@ -135,11 +135,11 @@ table_creation_commands = {
         power           smallint    NOT NULL,
         voted_at        timestamp   NOT NULL,
         cancelled       BOOLEAN     NOT NULL,
-        is_unvote       BOOLEAN     NOT NULL
+        is_unvote       BOOLEAN     NOT NULL,
         af_power        smallint    NOT NULL,
         legacy          BOOLEAN     NOT NULL
     );""",
-    'view': """CREATE TABLE views
+    'views': """CREATE TABLE views
     (
         user_id     varchar(64) NOT NULL,
         document_id varchar(64),
