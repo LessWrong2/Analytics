@@ -123,6 +123,7 @@ table_creation_commands = {
         small_downvote    numeric,
         big_downvote      numeric,
         user_agent        text,
+        deleted           BOOLEAN,
         created_at        timestamp,
         birth             timestamp
     );""",
