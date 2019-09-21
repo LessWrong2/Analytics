@@ -141,8 +141,8 @@ def prepare_comments(dfc):
         'smallDownvote',
         'bigDownvote',
         'userAgent',
-        'deleted'
-        'createdAt',
+        'deleted',
+        'createdAt'
     ]
 
     comments = dfc[comments_sql_cols].sort_values('postedAt', ascending=False)
