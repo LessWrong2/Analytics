@@ -711,15 +711,13 @@ def enrich_collections(colls_dfs, date_str):  # dict[str:df] -> dict[str:df]
 @timed
 def run_etlw_pipeline(date_str, from_file=False, clean_up=False, plotly=False, gsheets=False,
                       metrics=False, postgres=False, limit=None):
-    # ##0&1. LOAD DATA
+    # ##1&2. LOAD AND PREPARE DATA
     if from_file:
-        dfs_cleaned = load_from_file(date_str)
+        dfs_enriched = load_from_file(date_str)
     else:
         dfs_cleaned = get_collections_cleaned(limit=limit)
-
-    # ##2. ENRICHING OF COLLECTIONS
-    today = dfs_cleaned['views']['createdAt'].max().strftime('%Y%m%d')  # treat max date in collections as "today"
-    dfs_enriched = enrich_collections(dfs_cleaned, date_str=today)
+        today = dfs_cleaned['views']['createdAt'].max().strftime('%Y%m%d')  # treat max date in collections as "today"
+        dfs_enriched = enrich_collections(dfs_cleaned, date_str=today)
 
     # ##3. WRITE OUT ENRICHED COLLECTIONS
     write_collections(dfs_enriched, date_str=today)
@@ -730,7 +728,7 @@ def run_etlw_pipeline(date_str, from_file=False, clean_up=False, plotly=False, g
 
     # ##5. PLOT GRAPHS TO PLOTLY DASHBOARD
     if plotly:
-        run_plotline(dfs_enriched, start_date='2019-04-01', size=(700, 350), online=True)
+        run_plotline(dfs_enriched, start_date='2019-04-01', size=(700, 350), pr='W', ma=4, online=True)
 
     # ##6. PLOT GRAPHS TO PLOTLY DASHBOARD
     if gsheets:
