@@ -711,16 +711,18 @@ def enrich_collections(colls_dfs, date_str):  # dict[str:df] -> dict[str:df]
 @timed
 def run_etlw_pipeline(date_str, from_file=False, clean_up=False, plotly=False, gsheets=False,
                       metrics=False, postgres=False, limit=None):
-    # ##1&2. LOAD AND PREPARE DATA
+    # ##1. LOAD DATA
     if from_file:
         dfs_enriched = load_from_file(date_str)
     else:
         dfs_cleaned = get_collections_cleaned(limit=limit)
-        today = dfs_cleaned['views']['createdAt'].max().strftime('%Y%m%d')  # treat max date in collections as "today"
+        today = dfs_cleaned['views']['createdAt'].max().strftime('%Y%m%d')  # treat max date in collections as "today" in case of load from file from older date
+        # ##2. PREPARE DATA
         dfs_enriched = enrich_collections(dfs_cleaned, date_str=today)
+        # ##3. WRITE OUT ENRICHED COLLECTIONS
+        write_collections(dfs_enriched, date_str=today)
 
-    # ##3. WRITE OUT ENRICHED COLLECTIONS
-    write_collections(dfs_enriched, date_str=today)
+
 
     # ##4 METRIC STUFF - PLOTS AND SHEETS
     if metrics:
