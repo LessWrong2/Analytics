@@ -90,7 +90,6 @@ table_creation_commands = {
         frontpaged                      BOOLEAN     NOT NULL,
         frontpage_date                  timestamp,
         curated_date                    timestamp,
-        moderation_guidelines_html_body text,
         status                          numeric,
         legacy_spam                     BOOLEAN     NOT NULL,
         author_is_unreviewed            BOOLEAN     NOT NULL,
