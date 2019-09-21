@@ -30,7 +30,7 @@ def timed(func):
 
         result = func(*args, **kwargs)
         end = get_local_time()
-        print_and_log('{} finished at {}'.format(func.__name__, start.strftime('%Y-%m-%d %H:%M:%S')))
+        print_and_log('{} finished at {}'.format(func.__name__, end.strftime('%Y-%m-%d %H:%M:%S')))
         print_and_log("{} ran in {}\n".format(func.__name__, end - start))
 
         return result
