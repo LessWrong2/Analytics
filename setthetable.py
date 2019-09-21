@@ -144,7 +144,7 @@ table_creation_commands = {
     'views': """CREATE TABLE views
     (
         user_id     varchar(64) NOT NULL,
-        document_id varchar(64),
+        document_id varchar(64) NOT NULL,
         created_at  timestamp   NOT NULL,
         date        date
     );"""
