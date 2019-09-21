@@ -50,7 +50,8 @@ table_creation_commands = {
         num_views_last_180_days                 numeric,
         num_distinct_posts_viewed_last_180_days numeric,
         bio                                     text,
-        email                                   text
+        email                                   text,
+        birth                                   timestamp
     ); """,
     'posts': """CREATE TABLE posts
     (
