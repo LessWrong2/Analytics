@@ -709,8 +709,8 @@ def enrich_collections(colls_dfs, date_str):  # dict[str:df] -> dict[str:df]
 
 
 @timed
-def run_etlw_pipeline(date_str, from_file=False, clean_up=False, plotly=False, gsheets=False,
-                      metrics=False, postgres=False, limit=None):
+def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsheets=True,
+                      metrics=True, postgres=True, limit=None):
     # ##1. LOAD DATA
     if from_file:
         dfs_enriched = load_from_file(date_str)
