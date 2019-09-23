@@ -493,14 +493,14 @@ def calc_user_view_stats(views_df):
     views_df['date'] = views_df['createdAt'].dt.date
     views_last_30 = views_df[views_df['createdAt'] >= views_df['createdAt'].max() - pd.Timedelta(30 - 1, unit='d')]
     view_presence_stats = views_last_30.groupby('userId')['date'].nunique().to_frame('num_days_present_last_30_days')
-    view_presence_stats['num_days_present_last_30_days'] = view_presence_stats['num_days_present_last_30_days'].fillna(
-        0)
 
     view_stats = (
         view_date_stats
             .merge(view_post_stats, left_index=True, right_index=True, how='outer')
             .merge(view_presence_stats, left_index=True, right_index=True, how='outer')
     )
+
+    view_stats['num_days_present_last_30_days'] = view_stats['num_days_present_last_30_days'].fillna(0)
 
     return view_stats
 
@@ -721,8 +721,6 @@ def run_etlw_pipeline(date_str, from_file=False, clean_up=False, plotly=False, g
         dfs_enriched = enrich_collections(dfs_cleaned, date_str=today)
         # ##3. WRITE OUT ENRICHED COLLECTIONS
         write_collections(dfs_enriched, date_str=today)
-
-
 
     # ##4 METRIC STUFF - PLOTS AND SHEETS
     if metrics:
