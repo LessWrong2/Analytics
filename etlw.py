@@ -273,7 +273,7 @@ def clean_up_old_files(days_to_keep=1):
     """Function for deleting old file downloads. Accepts """
 
     date_folders = get_list_of_dates()
-
+    return [shutil.rmtree(folder) for folder in date_folders[days_to_keep:]]
 
 @timed
 def load_from_file(date_str, coll_names=('votes', 'views', 'comments', 'posts', 'users')):
@@ -757,6 +757,6 @@ if __name__ == '__main__':
                       plotly=True,
                       gsheets=True,
                       metrics=True,
-                      postgres=False,
+                      postgres=True,
                       clean_up=True
                       )
