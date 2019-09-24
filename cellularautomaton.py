@@ -2,7 +2,7 @@ import pandas as pd
 from gspread_pandas import Spread, Client
 from utils import timed, get_config_field
 
-def create_and_update_user_sheet(dfu, spreadsheet, num_rows=None):
+def create_and_update_user_sheet(dfu, spreadsheet, limit=None):
     data = dfu[~dfu['banned']].sort_values('karma', ascending=False)
     data.loc[data['days_since_active'] <= 0, 'days_since_active'] = 0
     data['username'] = '=HYPERLINK("www.lesswrong.com/users/'.lower() + data['username'] + '", "' + data[
@@ -29,22 +29,22 @@ def create_and_update_user_sheet(dfu, spreadsheet, num_rows=None):
         'num_posts_last_180_days',
     ]
 
-    recent_count_cols = [
-        'num_distinct_posts_viewed_last_30_days',
-        'num_votes_last_30_days',
-        'num_comments_last_30_days',
-        'num_posts_last_30_days',
-        'num_views_last_180_days',
-        'num_votes_last_180_days',
-        'num_comments_last_180_days',
-        'num_posts_last_180_days']
+    # recent_count_cols = [ # test removal since trying fix upstream
+    #     'num_distinct_posts_viewed_last_30_days',
+    #     'num_votes_last_30_days',
+    #     'num_comments_last_30_days',
+    #     'num_posts_last_30_days',
+    #     'num_views_last_180_days',
+    #     'num_votes_last_180_days',
+    #     'num_comments_last_180_days',
+    #     'num_posts_last_180_days']
 
-    if num_rows:
-        data = data[user_cols].head(num_rows)
+    if limit:
+        data = data[user_cols].head(limit)
     else:
         data = data[user_cols]
 
-    data.loc[:, recent_count_cols] = data[recent_count_cols].fillna(0)
+    # data.loc[:, recent_count_cols] = data[recent_count_cols].fillna(0)
     data.columns = [col.replace('_', ' ').title() for col in data.columns]
     spreadsheet.df_to_sheet(data, replace=True, sheet='Users', index=False)
     return data

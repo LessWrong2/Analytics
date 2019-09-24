@@ -500,7 +500,6 @@ def calc_user_view_stats(views_df):
             .merge(view_presence_stats, left_index=True, right_index=True, how='outer')
     )
 
-    view_stats['num_days_present_last_30_days'] = view_stats['num_days_present_last_30_days'].fillna(0)
 
     return view_stats
 
@@ -529,14 +528,8 @@ def calc_user_post_stats(posts):  # df -> df
 
     post_date_stats = postsByUser['postedAt'].agg(
         {'total_posts': 'size', 'earliest_post': 'min', 'most_recent_post': 'max'})
-    post_draft_stats = postsByUser['draft'].agg({'num_drafts': 'sum', 'percent_drafts': 'mean'})
-    post_frontpage_stats = postsByUser['frontpaged'].sum().to_frame('num_frontpage_posts')
 
-    post_stats = (
-        post_date_stats
-            .merge(post_draft_stats, left_index=True, right_index=True)
-            .merge(post_frontpage_stats, left_index=True, right_index=True)
-    )
+    post_stats = post_date_stats # used to be more stats here, but they weren't worth it
 
     return post_stats
 
@@ -684,6 +677,19 @@ def enrich_users(colls_dfs, date_str):
     users['most_recent_activity'] = users[
         ['most_recent_post', 'most_recent_comment', 'most_recent_vote', 'most_recent_view', 'createdAt']].max(axis=1)
     users['days_since_active'] = (date - users['most_recent_activity']).dt.days
+
+    non_nan_columns = ['legacyKarma', 'karma', 'afKarma', 'postCount', 'commentCount',
+       'frontpagePostCount', 'total_posts', 'total_comments', 'smallUpvote', 'smallDownvote',
+       'bigUpvote', 'bigDownvote', 'num_votes', 'num_views', 'num_distinct_posts_viewed',
+       'num_days_present_last_30_days', 'num_posts_last_30_days', 'num_comments_last_30_days', 'num_votes_last_30_days',
+       'num_views_last_30_days', 'num_distinct_posts_viewed_last_30_days', 'num_posts_last_180_days',
+       'num_comments_last_180_days', 'num_votes_last_180_days', 'num_views_last_180_days',
+       'num_distinct_posts_viewed_last_180_days',
+       'days_since_active']
+
+    users.loc[:, non_nan_columns] = users.loc[:, non_nan_columns].fillna(0)
+
+    users['num_days_present_last_30_days'] = users['num_days_present_last_30_days'].fillna(0)
 
     return users
 
