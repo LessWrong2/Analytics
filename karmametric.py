@@ -128,7 +128,8 @@ def plot_karma_metric(allVotes, online=False, pr='D', ma=7, start_date='2019-04-
 
     fig = go.Figure(data=data, layout=layout)
 
-    plotly.tools.set_credentials_file(username='darkruby501', api_key='lnzgPwQick1lSV1eztol')
+    plotly.tools.set_credentials_file(username=get_config_field('PLOTLY', 'username'),
+                                      api_key=get_config_field('PLOTLY', 'api_key'))
     init_notebook_mode(connected=True)
 
     filename = 'Net Karma Metric - {}'.format(pr_dict[pr].capitalize())

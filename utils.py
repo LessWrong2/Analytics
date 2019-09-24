@@ -11,6 +11,8 @@ def get_config_field(section, field):
 
 
 def print_and_log(message):
+    #TO-DO configure logger to go to both file and stdout, putt timestamp in there, also capture stderr somehow . . .
+
     logging.basicConfig(filename=get_config_field('LOGGING', 'file'), level=logging.DEBUG)
 
     print(message)
