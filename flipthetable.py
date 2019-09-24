@@ -228,6 +228,8 @@ def test_db_contents():
     engine = get_pg_engine()
     conn = engine.connect()
     _ = [display(pd.read_sql("SELECT * FROM {} LIMIT 3".format(coll), conn)) for coll in tables]
+    print({table: conn.execute("SELECT COUNT(*) FROM {}".format(table)).first()[0] for table in tables})
+
     conn.close()
 
 
