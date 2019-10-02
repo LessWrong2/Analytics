@@ -52,3 +52,30 @@ def mem_and_info(df):
           .merge(c, left_index=True, right_index=True)
           .sort_values('memory', ascending=False))
     print()  # creates space when running repeatedly
+
+
+def get_valid_users(dfu):
+    return dfu[(~dfu['banned'])&(~dfu['deleted'])&(dfu['num_distinct_posts_viewed']>=5)]
+
+
+def get_valid_posts(dfp):
+    return dfp[(dfp[['smallUpvote', 'bigUpvote']].sum(axis=1) >= 2)&~dfp['draft']&~dfp['legacySpam']]
+
+
+def get_valid_comments(dfc):
+    return dfc[dfc['userId']!='pgoCXxuzpkPXADTp2'] #remove GPT-2
+
+
+def get_valid_non_self_votes(dfv, dfp, dfc, dfu):
+    a = dfv[~dfv['cancelled']].merge(dfp[['_id', 'userId']], left_on='documentId', right_on='_id',
+                                     suffixes=['', '_post'], how='left')
+    b = a.merge(dfc[['_id', 'userId']], left_on='documentId', right_on='_id', suffixes=['', '_comment'], how='left')
+    b['userId_document'] = b['userId_comment'].fillna(b['userId_post'])
+    b['self_vote'] = b['userId'] == b['userId_document']
+    b = b[b['userId'].isin(dfu[(dfu['signUpReCaptchaRating'].fillna(1)>0.3)&(~dfu['banned'])]['_id'])]
+
+    return b[~b['self_vote']]
+
+
+def get_valid_votes(dfv, dfp, dfc, dfu):
+    return get_valid_non_self_votes(dfv,dfp, dfc, dfu)
