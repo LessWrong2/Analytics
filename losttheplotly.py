@@ -16,23 +16,29 @@ def generate_annotation_object(index, x, y, text):
     else:
         sign = -1
 
-    if (index // 2) % 2 == 0:
-        magnitude = 120
-    else:
-        magnitude = 150
+    # if (index // 2) % 2 == 0:
+    #     magnitude = 100
+    # else:
+    #     magnitude = 150
+
+    magnitude = index%4*60 + 60
+
 
     return go.layout.Annotation(
         x=x,
         y=y.loc[x],
         xref="x",
         yref='y',
+        # axref='x',
+        # ayref='y',
         text=text,
         showarrow=True,
         arrowhead=7,
         arrowwidth=1,
         ax=0,
         ay=sign * magnitude,
-        font={'color': 'blue'}
+        font={'color': 'blue'},
+        clicktoshow='onoff'
         #         textangle=345
     )
 
@@ -43,6 +49,9 @@ def get_events_sheet(only_top=True):
     events = s.sheet_to_df()
     events.index = pd.to_datetime(events.index)
     events = events.reset_index().reset_index().set_index('date')
+    events['top'] = events['top']=='TRUE'
+    if only_top:
+        events = events[events['top']]
 
     return events
 
