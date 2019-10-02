@@ -7,44 +7,55 @@ from lwdash import *
 from karmametric import *
 from utils import timed
 
-def plotly_ts(ss=None, title='missing', color='yellow', dd=None, start_date=None, end_date=pd.datetime.today(),
-              ma=1, pr='D', date_col='postedAt', size=(700, 400), online=False, exclude_last_period=True,):
-    if dd is None:
-        dd = ss.set_index(date_col).resample(pr, closed='left', label='left').size().rolling(ma).mean().to_frame(title).reset_index()
 
-    if exclude_last_period:
-        dd = dd.iloc[:-1]
+def generate_annotation_object(index, x, y, text):
+    """Creates a single annotations object for plotly plots"""
 
-    data = [
-                go.Scatter(x=dd[date_col], y=dd[title], line={'color': color, 'width': 2})]
+    if index % 2 == 0:
+        sign = 1
+    else:
+        sign = -1
 
-    pr_dict = {'D': 'daily', 'W': 'weekly'}
+    if (index // 2) % 2 == 0:
+        magnitude = 120
+    else:
+        magnitude = 150
 
-    layout = go.Layout(
-        autosize = True, width=size[0], height=size[1],
-        title= '{} ({})'.format(title, pr_dict[pr]),
-        xaxis={'range': [start_date, end_date]},
-        yaxis={'range': [0, dd.set_index(date_col)[start_date:][title].max() * 1.2],
-               'title': title}
+    return go.layout.Annotation(
+        x=x,
+        y=y.loc[x],
+        xref="x",
+        yref='y',
+        text=text,
+        showarrow=True,
+        arrowhead=7,
+        arrowwidth=1,
+        ax=0,
+        ay=sign * magnitude,
+        font={'color': 'blue'}
+        #         textangle=345
     )
 
 
-    fig = go.Figure(data=data, layout=layout)
+def get_events_sheet():
+    spreadsheet_user = get_config_field('GSHEETS', 'user')
+    s = Spread(spreadsheet_user, 'Release & PR Events', sheet='Events', create_spread=False, create_sheet=False)
+    events = s.sheet_to_df()
+    events.index = pd.to_datetime(events.index)
+    events = events.reset_index().reset_index().set_index('date')
 
-    if online:
-        py.iplot(fig, filename=title)
-    else:
-        iplot(fig, filename=title)
+    return events
+
 
 def plotly_ts_ma(ss=None, title='missing', color='yellow', dd=None, start_date=None, end_date=pd.datetime.today(),
-                 date_col='postedAt', size=(700, 400), online=False, exclude_last_period=True,
+                 date_col='postedAt', size=(700, 400), online=False, exclude_last_period=True, annotations=False,
                  pr='D', ma=7):
 
     pr_dict = {'D':'day', 'W':'week', 'M':'month', 'Y':'year'}
     pr_dictly = {'D':'daily', 'W':'weekly', 'M':'monthly', 'Y':'yearly'}
 
     if dd is None:
-        dd = ss.set_index(date_col).resample(pr).size().to_frame(title).reset_index()
+        dd = ss.set_index(date_col).resample(pr, label='right').size().to_frame(title).reset_index()
 
     dd_ma = dd.set_index(date_col)[title].rolling(ma).mean().round(1).reset_index()
 
@@ -57,15 +68,21 @@ def plotly_ts_ma(ss=None, title='missing', color='yellow', dd=None, start_date=N
         go.Scatter(x=dd_ma[date_col], y=dd_ma[title], line={'color': color, 'width': 3}, name='{} {} avg'.format(ma, pr_dict[pr]))
     ]
 
+    if annotations:
+        events = get_events_sheet()
+        annotations = [generate_annotation_object(index=index, x=date, y=dd.set_index(date_col)[title], text=event)
+                       for date, index, event in events.resample(pr, label='right').first().dropna().itertuples()]
+    else:
+        annotations = None
 
     layout = go.Layout(
         autosize = True, width=size[0], height=size[1],
         title= title,
         xaxis={'range': [start_date, end_date]},
         yaxis={'range': [0, dd.set_index(date_col)[start_date:][title].max() * 1.2],
-               'title': title}
+               'title': title},
+        annotations=annotations
     )
-
 
     fig = go.Figure(data=data, layout=layout)
 
@@ -75,10 +92,11 @@ def plotly_ts_ma(ss=None, title='missing', color='yellow', dd=None, start_date=N
         iplot(fig, filename=title)
 
 
-def plotly_ds_uniques(df, date_col, title, start_date, color, size, online, pr='D', ma=7):
+def plotly_ds_uniques(df, date_col, title, start_date, color, size, online, annotations=False, pr='D', ma=7):
     dd = df.set_index(date_col)['2009':].resample(pr)['userId'].nunique().to_frame(title).reset_index()
     plotly_ts_ma(dd=dd, date_col=date_col, title=title, start_date=start_date, color=color, size=size,
-                 online=online, pr=pr, ma=ma)
+                 online=online, annotations=annotations, pr=pr, ma=ma)
+
 
 def plot_table(df, title='missing', online=False):
     trace = go.Table(
