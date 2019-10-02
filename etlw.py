@@ -424,6 +424,7 @@ def clean_raw_logins(logins_df):
 
     logins_parsed = logins_df
     logins_parsed.loc[:, 'createdAt'] = pd.to_datetime(logins_parsed['createdAt'])
+    logins_parsed.loc[:, 'type'] = logins_parsed['properties'].str['type']
 
     return logins_parsed
 
