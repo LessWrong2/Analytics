@@ -16,7 +16,7 @@ from cellularautomaton import *
 from karmametric import run_metric_pipeline
 from flipthetable import run_pg_pandas_transfer
 
-from utils import timed, print_and_log, get_config_field
+from utils import timed, print_and_log, get_config_field, get_valid_posts, get_valid_votes
 
 MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
 MONGO_DB_URL = get_config_field('MONGODB', 'prod_db_url')
@@ -354,7 +354,7 @@ def clean_raw_posts(posts):
     posts.loc[:, 'createdAt'] = pd.to_datetime(posts['createdAt'])
 
     # fill in missing values and cast to appropriate types
-    for col in ['viewCount', 'clickCount', 'commentCount', 'wordCount']:
+    for col in ['viewCount', 'clickCount', 'commentCount']:
         posts.loc[:, col] = posts.loc[:, col].fillna(0).astype(int)
     for col in ['draft', 'legacy', 'af', 'question', 'legacySpam', 'isEvent']:
         posts.loc[:, col] = posts.loc[:, col].fillna(False).astype(bool)
@@ -485,7 +485,10 @@ def calculate_vote_stats_for_users(votes_df):
     return vote_stats
 
 
-def calc_user_view_stats(views_df):
+def calc_user_view_stats(views_df, posts_df):
+
+    views_df = views_df[views_df['documentId'].isin(get_valid_posts(posts_df)['_id'])]
+
     view_date_stats = views_df.groupby('userId')['createdAt'].agg(
         {'num_views': 'count', 'most_recent_view': 'max', 'earliest_view': 'min'})
     view_post_stats = views_df.groupby('userId')['documentId'].nunique().to_frame('num_distinct_posts_viewed')
@@ -660,7 +663,7 @@ def enrich_users(colls_dfs, date_str):
     post_stats = calc_user_post_stats(posts)
     comment_stats = calc_user_comment_stats(comments)
     vote_stats = calculate_vote_stats_for_users(votes)
-    view_stats = calc_user_view_stats(views)
+    view_stats = calc_user_view_stats(views, posts)
     recent_activity = calc_user_recent_activity(posts, comments, votes, views, date)
 
     users = (users

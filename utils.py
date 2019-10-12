@@ -1,8 +1,12 @@
+import pandas as pd
+import numpy as np
 import datetime
 import pytz
 import logging
 from functools import wraps
 import configparser
+from multiprocessing import cpu_count, Pool
+
 
 def get_config_field(section, field):
     config = configparser.ConfigParser()
@@ -52,3 +56,45 @@ def mem_and_info(df):
           .merge(c, left_index=True, right_index=True)
           .sort_values('memory', ascending=False))
     print()  # creates space when running repeatedly
+
+
+def parallelize_dataframe(df, func, n_cores=None):
+
+    if not n_cores:
+        n_cores = cpu_count()
+
+    df_split = np.array_split(df, n_cores)
+    pool = Pool(n_cores)
+    df = pd.concat(pool.map(func, df_split))
+    pool.close()
+    pool.join()
+    return df
+
+
+def get_valid_users(dfu):
+    return dfu[(~dfu['banned'])&(~dfu['deleted'])&(dfu['num_distinct_posts_viewed']>=5)&(dfu['reviewedByUserId'].notnull())]
+
+
+def get_valid_posts(dfp):
+    return dfp[(dfp[['smallUpvote', 'bigUpvote']].sum(axis=1) >= 2)&~dfp['draft']&(~dfp['legacySpam'])
+               &(~dfp['authorIsUnreviewed'])&(dfp['status']==2)]
+
+
+def get_valid_comments(dfc, dfu):
+    return dfc[(dfc['userId']!='pgoCXxuzpkPXADTp2')&(dfc['userId'].isin(get_valid_users(dfu)['_id']))] #remove GPT-2
+
+
+def get_valid_votes(dfv, dfp, dfc, dfu):
+    a = dfv[~dfv['cancelled']].merge(dfp[['_id', 'userId']], left_on='documentId', right_on='_id',
+                                     suffixes=['', '_post'], how='left')
+    b = a.merge(dfc[['_id', 'userId']], left_on='documentId', right_on='_id', suffixes=['', '_comment'], how='left')
+    b['userId_document'] = b['userId_comment'].fillna(b['userId_post'])
+    b['self_vote'] = b['userId'] == b['userId_document']
+    b = b[b['userId'].isin(get_valid_users(dfu)['_id'])]
+
+    return b[~b['self_vote']]
+
+
+def get_valid_views(dpv, dfu, dfp):
+    valid_views = dpv[(dpv['userId'].isin(get_valid_users(dfu)['_id']))]
+    return valid_views[valid_views['documentId'].isin(get_valid_posts(dfp)['_id'])]
