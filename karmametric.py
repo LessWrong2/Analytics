@@ -100,8 +100,8 @@ def plot_karma_metric(allVotes, online=False, pr='D', ma=7, start_date='2019-04-
     color = 'red'
     size = (1200, 500)
 
-    pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Y': 'yearly'}
-    pr_dict2 = {'D': 'day', 'W': 'week', 'M': 'month', 'Y': 'year'}
+    pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
+    pr_dict2 = {'D': 'day', 'W': 'week', 'M': 'month', 'Q': 'quarter', 'Y': 'year'}
 
     data = [
         go.Scatter(x=votes_ts[date_col], y=votes_ts['effect'].round(1), line={'color': color, 'width': 0.5},
@@ -142,7 +142,7 @@ def plot_karma_metric(allVotes, online=False, pr='D', ma=7, start_date='2019-04-
 
 
 def agg_votes_to_period(dfvv, pr='D', start_date='2019-06'):
-    pr_dict = {'D': 'day', 'W': 'week'}
+    pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
 
     post_cols = ['_id', 'postedAt', 'username', 'title', 'baseScore', 'num_votes', 'percent_downvotes',
                  'num_distinct_viewers']
@@ -159,7 +159,7 @@ def agg_votes_to_period(dfvv, pr='D', start_date='2019-06'):
 
 # add total effects
 def add_total_effect_cumulative_and_ranks(dd, pr='D'):
-    pr_dict = {'D': 'day', 'W': 'week'}
+    pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
 
     dd['effect'] = dd['effect'].round(1)
     dd['abs_effect'] = dd['effect'].abs()
@@ -200,7 +200,7 @@ def add_url_column(dd):
 
 
 def item_agg_select_columns(dd, pr):
-    pr_dict = {'D': 'day', 'W': 'week'}
+    pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
     cols = ['votedAt', 'collectionName', 'title', 'username_post', 'baseScore_post', 'username_comment',
             'baseScore_comment',
             'effect', 'effect_over_abs', 'cum_effect', 'cum_over_abs',
@@ -214,7 +214,7 @@ def item_agg_select_columns(dd, pr):
 
 
 def post_agg_select_columns(dd, pr):
-    pr_dict = {'D': 'day', 'W': 'week'}
+    pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
     cols = ['votedAt', 'title', 'username', 'baseScore', 'num_comments_voted_on_{}'.format(pr_dict[pr]),
             'num_votes_thread_{}'.format(pr_dict[pr]), 'num_downvotes_{}'.format(pr_dict[pr]),
             'effect', 'effect_over_abs', 'cum_effect', 'cum_over_abs',
@@ -249,7 +249,7 @@ def agg_votes_to_items(dfvv, dfp, dfc, pr='D', start_date='2019-06-01'):
 
 
 def agg_votes_to_posts(dfvv, dfp, dfc, pr='D', start_date='2019-06-01'):
-    pr_dict = {'D': 'day', 'W': 'week'}
+    pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
     d = agg_votes_to_period(dfvv, pr, start_date)
 
     # add in comments
@@ -305,7 +305,7 @@ def run_metric_pipeline(dfs, online=False, sheets=False, plots=False):
         spreadsheet_user = get_config_field('GSHEETS', 'user')
         s = Spread(spreadsheet_user, spreadsheet_name, sheet='Users', create_spread=True, create_sheet=True)
 
-        pr_dict = {'D': 'Daily', 'W': 'Weekly'}
+        pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
 
         for pr in ['D', 'W']:
             votes2posts = agg_votes_to_posts(allVotes, dfp, dfc, pr=pr)
