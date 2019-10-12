@@ -132,10 +132,10 @@ def run_plotline(dfs, online=False, start_date=None, size=(1000, 400), pr='D', m
     dfv = dfs['votes']
     dpv = dfs['views']  # pv = post-views
 
-    valid_users = get_valid_users(dfu)
-    valid_posts = get_valid_posts(dfp)
-    valid_comments = get_valid_comments(dfc, )
-    valid_votes = get_valid_votes(dfv,dfp, dfc, dfu)
+    valid_users = get_valid_users(dfs, required_minimum_posts_views=5)
+    valid_posts = get_valid_posts(dfs, required_upvotes=1)
+    valid_comments = get_valid_comments(dfc,dfs)
+    valid_votes = get_valid_votes(dfs)
 
     plotly_args = {'start_date': start_date, 'pr': pr, 'ma': ma, 'size': size,
                    'online': online, 'annotations': annotations}
