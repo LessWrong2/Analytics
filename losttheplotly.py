@@ -11,18 +11,10 @@ from utils import timed, get_valid_users, get_valid_posts, get_valid_comments, g
 def generate_annotation_object(index, x, y, text):
     """Creates a single annotations object for plotly plots"""
 
-    if index % 2 == 0:
-        sign = 1
-    else:
-        sign = -1
-
-    # if (index // 2) % 2 == 0:
-    #     magnitude = 100
-    # else:
-    #     magnitude = 150
-
-    magnitude = index%4*60 + 60
-
+    def calc_offset(i):
+        """takes integer index as input, alternates positive negative on each number,
+        every second number changes magnitude"""
+        return (-1)**(i % 2)*((i//2 % 2 == 0)*75+75)
 
     return go.layout.Annotation(
         x=x,
@@ -36,7 +28,7 @@ def generate_annotation_object(index, x, y, text):
         arrowhead=7,
         arrowwidth=1,
         ax=0,
-        ay=sign * magnitude,
+        ay=calc_offset(index),
         font={'color': 'blue'},
         clicktoshow='onoff'
         #         textangle=345
@@ -78,10 +70,11 @@ def plotly_ts_ma(raw_data=None, resampled_data=None, title='missing', color='yel
     ]
 
     if annotations:
-        events = get_events_sheet()
+        events = get_events_sheet(only_top=False)
         annotations = [generate_annotation_object(index=index, x=date, y=resampled_data.set_index(date_col)[title], text=event)
                        for date, index, event in events[resampled_data[date_col].min():][['index', 'event']].resample(pr, label='right')
-                           .agg({'index': 'first', 'event': lambda x: ';<br>'.join(x.tolist()) if len(x) > 0 else np.nan}).dropna().itertuples()]
+                           .agg({'event': lambda x: ';<br>'.join(x.tolist()) if len(x) > 0 else np.nan})
+                           .dropna().reset_index().reset_index().set_index('date').itertuples()]
     else:
         annotations = None
 
@@ -89,7 +82,7 @@ def plotly_ts_ma(raw_data=None, resampled_data=None, title='missing', color='yel
         autosize = True, width=size[0], height=size[1],
         title= title,
         xaxis={'range': [start_date, end_date]},
-        yaxis={'range': [0, resampled_data.set_index(date_col)[start_date:][title].max() * 1.2],
+        yaxis={'range': [0, resampled_data.set_index(date_col)[start_date:][title].max() * 1.05],
                'title': title},
         annotations=annotations
     )
@@ -102,7 +95,7 @@ def plotly_ts_ma(raw_data=None, resampled_data=None, title='missing', color='yel
         iplot(fig, filename=title)
 
 
-def plotly_uniques(raw_data, date_col, title, start_date, color, size, online, annotations=False, pr='D', ma=7):
+def plotly_uniques(raw_data, date_col, title, start_date, color, size, online=False, annotations=False, pr='D', ma=7):
     dd = raw_data.set_index(date_col)['2009':].resample(pr)['userId'].nunique().to_frame(title).reset_index()
     plotly_ts_ma(resampled_data=dd, title=title, color=color, start_date=start_date, date_col=date_col, size=size,
                  online=online, annotations=annotations, pr=pr, ma=ma)
@@ -141,7 +134,7 @@ def run_plotline(dfs, online=False, start_date=None, size=(1000, 400), pr='D', m
 
     valid_users = get_valid_users(dfu)
     valid_posts = get_valid_posts(dfp)
-    valid_comments = get_valid_comments(dfc)
+    valid_comments = get_valid_comments(dfc, )
     valid_votes = get_valid_votes(dfv,dfp, dfc, dfu)
 
     plotly_args = {'start_date': start_date, 'pr': pr, 'ma': ma, 'size': size,
