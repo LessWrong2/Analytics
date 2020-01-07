@@ -3,7 +3,8 @@ from gspread_pandas import Spread, Client
 from utils import timed, get_config_field
 
 def create_and_update_user_sheet(dfu, spreadsheet, limit=None):
-    data = dfu[~dfu['banned']].sort_values('karma', ascending=False)
+    # data = dfu[~dfu['banned']].sort_values('karma', ascending=False) //old
+    data = dfu[(dfu['karma'] > 0) | (dfu['num_distinct_posts_viewed'] > 0) | (dfu['signUpReCaptchaRating'] >= 0.7)]
     data.loc[data['days_since_active'] <= 0, 'days_since_active'] = 0
     data['username'] = '=HYPERLINK("www.lesswrong.com/users/'.lower() + data['username'] + '", "' + data[
         'username'] + '")'
@@ -103,7 +104,7 @@ def create_and_update_all_sheets(dfs, spreadsheet_name):
     s = Spread(get_config_field('GSHEETS', 'user'), spreadsheet_name, sheet='Users', create_spread=True, create_sheet=True)
     _ = create_and_update_user_sheet(dfu, s)
     _ = create_and_update_posts_sheet(dfp, s)
-    _ = create_and_update_votes_sheet(dfv, s)
+    # _ = create_and_update_votes_sheet(dfv, s) // we never use this
 
     return s
 
