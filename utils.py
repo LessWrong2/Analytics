@@ -6,6 +6,7 @@ import logging
 from functools import wraps
 import configparser
 from multiprocessing import cpu_count, Pool
+from onedayatatime import htmlBody2plaintext
 
 
 def get_config_field(section, field):
@@ -74,9 +75,9 @@ def parallelize_dataframe(df, func, n_cores=None):
 def get_valid_users(dfs, required_minimum_posts_views=None):
     dfu = dfs['users']
 
-    valid_users = dfu[(~dfu['banned'])&(~dfu['deleted'])&(dfu['reviewedByUserId'].notnull())]
+    valid_users = dfu[(~dfu['banned'])&(~dfu['deleted'])]
     if required_minimum_posts_views:
-        return valid_users[valid_users[dfu['num_distinct_posts_viewed']>=required_minimum_posts_views]]
+        return valid_users[valid_users['num_distinct_posts_viewed']>=required_minimum_posts_views]
     else:
         return valid_users
 
@@ -92,14 +93,13 @@ def get_valid_posts(dfs, required_upvotes=None):
 
 
 def get_valid_comments(dfs):
-    dfu = dfs['users']
     dfc = dfs['comments']
 
-    return dfc[(dfc['userId']!='pgoCXxuzpkPXADTp2')&(dfc['userId'].isin(get_valid_users(dfu)['_id']))] #remove GPT-2
+    return dfc[(dfc['userId']!='pgoCXxuzpkPXADTp2') #remove GPT-2
+               &(dfc['userId'].isin(get_valid_users(dfs)['_id']))&(~dfc['deleted'])]
 
 
 def get_valid_votes(dfs):
-    dfu = dfs['users']
     dfp = dfs['posts']
     dfc = dfs['comments']
     dfv = dfs['votes']
@@ -110,15 +110,23 @@ def get_valid_votes(dfs):
     b = a.merge(dfc[['_id', 'userId']], left_on='documentId', right_on='_id', suffixes=['', '_comment'], how='left')
     b['userId_document'] = b['userId_comment'].fillna(b['userId_post'])
     b['self_vote'] = b['userId'] == b['userId_document']
-    b = b[b['userId'].isin(get_valid_users(dfu, required_minimum_posts_views=None)['_id'])]
+    b = b[b['userId'].isin(get_valid_users(dfs, required_minimum_posts_views=None)['_id'])]
 
     return b[~b['self_vote']]
 
 
 def get_valid_views(dfs):
-    dfu = dfs['users']
-    dfp = dfs['posts']
     dpv = dfs['views']  # pv = post-views
 
-    valid_views = dpv[(dpv['userId'].isin(get_valid_users(dfu)['_id']))]
-    return valid_views[valid_views['documentId'].isin(get_valid_posts(dfp)['_id'])]
+    valid_views = dpv[(dpv['userId'].isin(get_valid_users(dfs)['_id']))]
+    return valid_views[valid_views['documentId'].isin(get_valid_posts(dfs)['_id'])]
+
+
+def get_word_count(dfp_full):
+    dfp_full['html'] = dfp_full['contents'].str['html']
+    dfp_full['text'] = parallelize_dataframe(dfp_full['html'], htmlBody2plaintext, n_cores=cpu_count())
+
+    dfp_full['characters'] = dfp_full['text'].str.len()
+    dfp_full['word_count'] = np.round(dfp_full['characters'] / 6.5, 1)
+
+    return dfp_full[['text', 'characters', 'word_count']]

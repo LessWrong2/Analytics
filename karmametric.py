@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import plotly
-import plotly.plotly as py
+import chart_studio.plotly.plotly as py
 import plotly.graph_objs as go
 from plotly.offline import init_notebook_mode, iplot
 from gspread_pandas import Spread
@@ -85,7 +85,7 @@ def create_trend_frame(initial_value, freq):
     return trends
 
 
-def plot_karma_metric(allVotes, online=False, pr='D', ma=7, start_date='2019-04-01', end_date='2019-10-01'):
+def plot_karma_metric(allVotes, start_date, end_date, online=False, pr='D', ma=7):
     votes_ts = allVotes.set_index('votedAt').resample(pr)['effect'].sum()
     votes_ts = votes_ts.reset_index().iloc[:-1]
     votes_ts_ma = votes_ts.set_index('votedAt')['effect'].rolling(ma).mean().round(1).reset_index()
@@ -141,7 +141,7 @@ def plot_karma_metric(allVotes, online=False, pr='D', ma=7, start_date='2019-04-
     return votes_ts
 
 
-def agg_votes_to_period(dfvv, pr='D', start_date='2019-06'):
+def agg_votes_to_period(dfvv, start_date, pr='D'):
     pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
 
     post_cols = ['_id', 'postedAt', 'username', 'title', 'baseScore', 'num_votes', 'percent_downvotes',
@@ -226,7 +226,7 @@ def post_agg_select_columns(dd, pr):
     return dd[cols].set_index(['votedAt', 'title'])
 
 
-def agg_votes_to_items(dfvv, dfp, dfc, pr='D', start_date='2019-06-01'):
+def agg_votes_to_items(dfvv, dfp, dfc, start_date, pr='D'):
     post_cols = ['_id', 'postedAt', 'username', 'title', 'baseScore', 'num_votes', 'percent_downvotes',
                  'num_distinct_viewers']
     comment_cols = ['_id', 'postId', 'postedAt', 'username', 'baseScore', 'num_votes', 'percent_downvotes']
@@ -248,7 +248,7 @@ def agg_votes_to_items(dfvv, dfp, dfc, pr='D', start_date='2019-06-01'):
     return dd
 
 
-def agg_votes_to_posts(dfvv, dfp, dfc, pr='D', start_date='2019-06-01'):
+def agg_votes_to_posts(dfvv, dfp, dfc, start_date, pr='D'):
     pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
     d = agg_votes_to_period(dfvv, pr, start_date)
 
@@ -286,7 +286,7 @@ def agg_votes_to_posts(dfvv, dfp, dfc, pr='D', start_date='2019-06-01'):
     return dd
 
 @timed
-def run_metric_pipeline(dfs, online=False, sheets=False, plots=False):
+def run_metric_pipeline(dfs, date_str, online=False, sheets=False, plots=False):
     dfp = dfs['posts']
     dfc = dfs['comments']
 
@@ -294,8 +294,9 @@ def run_metric_pipeline(dfs, online=False, sheets=False, plots=False):
 
     if plots:
 
-        start_date = '2019-04-01'
-        end_date = '2019-10-01'
+        end_date = date_str
+        start_date = (pd.to_datetime(end_date) - pd.Timedelta(180, unit='d')).strftime('%Y-%m-%d')
+        start_date_sheets = (pd.to_datetime(end_date) - pd.Timedelta(30, unit='d')).strftime('%Y-%m-%d')
 
         plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='D', ma=7)
         plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='W', ma=4)
@@ -308,13 +309,13 @@ def run_metric_pipeline(dfs, online=False, sheets=False, plots=False):
         pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
 
         for pr in ['D', 'W']:
-            votes2posts = agg_votes_to_posts(allVotes, dfp, dfc, pr=pr)
+            votes2posts = agg_votes_to_posts(allVotes, dfp, dfc, pr=pr, start_date=start_date_sheets)
             data = votes2posts.reset_index().sort_values(['votedAt', 'rank'], ascending=[False, True]).copy()
             data['birth'] = pd.datetime.now()
             data.columns = [col.replace('_', ' ').title() for col in data.columns]
             s.df_to_sheet(data, replace=True, sheet='KM: Posts/{}'.format(pr_dict[pr]), index=False)
 
-            votes2items = agg_votes_to_items(allVotes, dfp, dfc, pr=pr)
+            votes2items = agg_votes_to_items(allVotes, dfp, dfc, pr=pr, start_date=start_date_sheets)
             data = votes2items.reset_index().sort_values(['votedAt', 'rank'], ascending=[False, True]).copy()
             data['birth'] = pd.datetime.now()
             data.columns = [col.replace('_', ' ').title() for col in data.columns]
