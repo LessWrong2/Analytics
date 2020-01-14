@@ -580,10 +580,10 @@ def calc_user_recent_activity(colls_dfs, present_date):
 
 def enrich_posts(colls_dfs):
 
-    posts = get_valid_posts(colls_dfs) # mostly useful to exclude drafts
+    posts = colls_dfs['posts'] # don't want to exclude drafts via filtering
     comments = get_valid_comments(colls_dfs)
     views = get_valid_views(colls_dfs)
-    users = get_valid_users(colls_dfs['users'])
+    users = get_valid_users(colls_dfs)
 
 
     def num_commenters(commenters_list):
@@ -666,7 +666,7 @@ def enrich_users(colls_dfs, date_str):
     comment_stats = calc_user_comment_stats(colls_dfs)
     vote_stats = calculate_vote_stats_for_users(colls_dfs)
     view_stats = calc_user_view_stats(colls_dfs)
-    recent_activity = calc_user_recent_activity(colls_dfs)
+    recent_activity = calc_user_recent_activity(colls_dfs, date)
 
     users = (users
              .merge(post_stats, left_on='_id', right_index=True, how='left')
@@ -681,7 +681,10 @@ def enrich_users(colls_dfs, date_str):
     users['true_earliest'] = users[['earliest_activity', 'createdAt']].min(axis=1)
     users['most_recent_activity'] = users[
         ['most_recent_post', 'most_recent_comment', 'most_recent_vote', 'most_recent_view', 'createdAt']].max(axis=1)
-    users['days_since_active'] = (date - users['most_recent_activity']).dt.days
+    users['days_since_active'] = np.nan
+    users.loc[users['most_recent_activity'].notnull(), 'days_since_active'] = (date -
+            users.loc[users['most_recent_activity'].notnull(), 'days_since_active'])
+    print(users['days_since_active'].sample(20))
 
     non_nan_columns = ['legacyKarma', 'karma', 'afKarma', 'postCount', 'commentCount',
        'frontpagePostCount', 'total_posts', 'total_comments', 'smallUpvote', 'smallDownvote',
