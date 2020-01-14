@@ -738,11 +738,12 @@ def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
 
     # ##4 METRIC STUFF - PLOTS AND SHEETS
     if metrics:
-        run_metric_pipeline(dfs_enriched, online=True, sheets=True, plots=True)
+        run_metric_pipeline(dfs_enriched, date_str, online=True, sheets=True, plots=True)
 
     # ##5. PLOT GRAPHS TO PLOTLY DASHBOARD
     if plotly:
-        run_plotline(dfs_enriched, start_date='2019-04-01', size=(700, 350), pr='W', ma=4, online=True)
+        start_date = (pd.to_datetime(date_str) - pd.Timedelta(180, unit='d')).strftime('%Y-%m-%d')
+        run_plotline(dfs_enriched, start_date=start_date, size=(700, 350), pr='W', ma=4, online=True)
 
     # ##6. PLOT GRAPHS TO PLOTLY DASHBOARD
     if gsheets:
