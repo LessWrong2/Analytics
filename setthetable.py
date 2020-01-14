@@ -147,5 +147,22 @@ table_creation_commands = {
         document_id varchar(64) NOT NULL,
         created_at  timestamp   NOT NULL,
         date        date
-    );"""
+    );""",
+    'user_agents': """CREATE TABLE user_agents
+(
+    ua_string           text NOT NULL,
+    ua_pretty           text,
+    browser_family      varchar(128),
+    browser_version     varchar(128),
+    os_family           varchar(64),
+    os_version          varchar(64),
+    device_family       varchar(256),
+    device_brand         varchar(64),
+    device_model        varchar(256),
+    is_mobile           boolean,
+    is_tablet           boolean,
+    is_mobile_or_tablet boolean,
+    is_desktop          boolean,
+    is_bot              boolean
+);"""
 }
