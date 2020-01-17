@@ -3,6 +3,7 @@ import configparser
 import sqlalchemy as sqa
 from setthetable import table_creation_commands
 from utils import timed, get_config_field
+from io import StringIO
 
 from IPython.display import display
 
@@ -167,12 +168,12 @@ def prep_frames_for_db(dfs):
     prep_funcs = {
         'users': prepare_users,
         'posts': prepare_posts,
-        'comments': prepare_comments
+        'comments': prepare_comments,
+        'votes': lambda x: x,
+        'views': lambda x: x
     }
 
-    [prep_funcs[coll](dfs[coll])
-         .to_csv(BASE_PATH + 'export/{}.csv'.format(coll), index=False) for coll in
-     ['users', 'posts', 'comments']]
+    return {coll: prep_funcs[coll](dfs[coll]) for coll in ['users', 'posts', 'comments', 'votes', 'views']}
 
 
 def truncate_or_drop_tables(tables, conn, drop=False):
@@ -193,31 +194,54 @@ def create_tables(tables, conn):
 
     [conn.execute(table_creation_commands[table]) for table in tables]
 
-def load_csvs_to_pg(date_str, conn):
-    for coll in ['votes', 'views']:
-        sql = "COPY {} FROM '{}processed/{}/{}.csv' DELIMITER ',' CSV HEADER;".format(coll, BASE_PATH, date_str, coll)
-        print(sql)
-        conn.execute(sql)
+def load_csvs_to_pg(dfs, conn): #date_str
 
-    for coll in ['posts', 'comments', 'users']:
-        sql = "COPY {} FROM '{}export/{}.csv' DELIMITER ',' CSV HEADER;".format(coll, BASE_PATH, coll)
-        print(sql)
-        conn.execute(sql)
+    for coll in ['users', 'posts', 'comments', 'votes', 'views']:
+        bulk_upload_to_pg(dfs[coll], table_name=coll, conn=conn)
+
+    # for coll in ['votes', 'views']:
+    #     sql = "COPY {} FROM '{}processed/{}/{}.csv' DELIMITER ',' CSV HEADER;".format(coll, BASE_PATH, date_str, coll)
+    #     print(sql)
+    #     conn.execute(sql)
+    #
+    # for coll in ['posts', 'comments', 'users']:
+    #     sql = "COPY {} FROM '{}export/{}.csv' DELIMITER ',' CSV HEADER;".format(coll, BASE_PATH, coll)
+    #     print(sql)
+    #     conn.execute(sql)
+
+@timed
+def bulk_upload_to_pg(df, table_name, conn):
+
+    sep = '\t'
+
+    buffer = StringIO()
+    buffer.write(df.to_csv(index=None, header=None, sep=sep))  # Write the Pandas DataFrame as a csv to the buffer
+    buffer.seek(0)  # Be sure to reset the position to the start of the stream
+
+    dbapi_conn = conn.connection
+    with dbapi_conn.cursor() as c:
+        c.copy_from(buffer, table_name, columns=df.columns, sep=sep)
+        dbapi_conn.commit()
+
 
 @timed
 def run_pg_pandas_transfer(dfs, date_str):
     tables = ['users', 'posts', 'comments', 'votes', 'views']
 
-    prep_frames_for_db(dfs)
+    dfs_prepared = prep_frames_for_db(dfs)
 
     engine = get_pg_engine()
-
     conn = engine.connect()
+
     transaction = conn.begin()
+
     print('truncating postgres tables')
     truncate_or_drop_tables(tables, conn, drop=False)
-    print('loading csv\'s into postgres db')
-    load_csvs_to_pg(date_str, conn)
+
+    print('loading tables into postgres db')
+    [bulk_upload_to_pg(dfs[coll], table_name=coll, conn=conn) for coll in tables]
+    # load_csvs_to_pg(date_str, conn)
+
     transaction.commit()
     print('transaction finished')
     conn.close()

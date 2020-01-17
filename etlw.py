@@ -684,7 +684,6 @@ def enrich_users(colls_dfs, date_str):
     users['days_since_active'] = np.nan
     users.loc[users['most_recent_activity'].notnull(), 'days_since_active'] = (date -
             users.loc[users['most_recent_activity'].notnull(), 'days_since_active'])
-    print(users['days_since_active'].sample(20))
 
     non_nan_columns = ['legacyKarma', 'karma', 'afKarma', 'postCount', 'commentCount',
        'frontpagePostCount', 'total_posts', 'total_comments', 'smallUpvote', 'smallDownvote',

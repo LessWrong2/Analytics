@@ -1,11 +1,9 @@
 import pandas as pd
 from chart_studio.tools import set_credentials_file
-import chart_studio.plotly
 import chart_studio.plotly.plotly as py
 import plotly.graph_objs as go
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 from lwdash import *
-from karmametric import *
 from utils import timed, get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes
 
 

@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import plotly
+from chart_studio.tools import set_credentials_file
 import chart_studio.plotly.plotly as py
 import plotly.graph_objs as go
 from plotly.offline import init_notebook_mode, iplot
@@ -128,7 +128,7 @@ def plot_karma_metric(allVotes, start_date, end_date, online=False, pr='D', ma=7
 
     fig = go.Figure(data=data, layout=layout)
 
-    plotly.tools.set_credentials_file(username=get_config_field('PLOTLY', 'username'),
+    set_credentials_file(username=get_config_field('PLOTLY', 'username'),
                                       api_key=get_config_field('PLOTLY', 'api_key'))
     init_notebook_mode(connected=True)
 
@@ -304,7 +304,7 @@ def run_metric_pipeline(dfs, date_str, online=False, sheets=False, plots=False):
     if sheets:
         spreadsheet_name = get_config_field('GSHEETS', 'spreadsheet_name')
         spreadsheet_user = get_config_field('GSHEETS', 'user')
-        s = Spread(spreadsheet_user, spreadsheet_name, sheet='Users', create_spread=True, create_sheet=True)
+        s = Spread(spread=spreadsheet_name, sheet='Users', create_spread=True, create_sheet=True, user=spreadsheet_user)
 
         pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
 
