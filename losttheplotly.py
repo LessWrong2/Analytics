@@ -4,7 +4,7 @@ import chart_studio.plotly.plotly as py
 import plotly.graph_objs as go
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 from lwdash import *
-from utils import timed, get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes
+from utils import get_config_field, timed, get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes
 
 
 def generate_annotation_object(index, x, y, text):
@@ -53,8 +53,6 @@ def plotly_ts_ma(raw_data=None, resampled_data=None, title='missing', color='yel
 
     pr_dict = {'D':'day', 'W':'week', 'M':'month', 'Y':'year'}
     pr_dictly = {'D':'daily', 'W':'weekly', 'M':'monthly', 'Y':'yearly'}
-    print("start_date = {}".format(start_date))
-    print("end_date = {}".format(end_date))
 
     if resampled_data is None:
         resampled_data = raw_data.set_index(date_col).resample(pr).size().to_frame(title).reset_index()
@@ -136,9 +134,6 @@ def run_plotline(dfs, online=False, start_date=None, end_date=None, size=(1000, 
 
     plotly_args = {'start_date': start_date, 'end_date': end_date, 'pr': pr, 'ma': ma, 'size': size,
                    'online': online, 'annotations': annotations}
-
-    print("start_date = {}".format(start_date))
-    print("plotly_args = {}".format(plotly_args))
 
     plotly_ts_ma(title='Accounts Created, 5+ posts_viewed', raw_data=valid_users, date_col='true_earliest', color='grey', **plotly_args)
     plotly_uniques(title='Num Logged-In Users', raw_data=dpv[dpv['userId'].isin(valid_users['_id'])], date_col='createdAt', color='black', **plotly_args)
