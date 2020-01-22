@@ -16,8 +16,8 @@ def update_petrov():
     dfs = et.load_from_file(date_str='most_recent', coll_names=['users'])
     dfu = dfs['users']
 
-    have_codes = pd.read_csv('/Users/rbloom/Downloads/petrov_day_list.csv')
-    codes = pd.read_csv('/Users/rbloom/Downloads/codez_secret_no_use.csv', usecols=['codes'])
+    have_codes = pd.read_csv('petrov_day_list.csv')
+    codes = pd.read_csv('codez_secret_no_use.csv', usecols=['codes'])
 
     have_codes.head()
 
