@@ -6,7 +6,7 @@ import logging
 from functools import wraps
 import configparser
 from multiprocessing import cpu_count, Pool
-from onedayatatime import htmlBody2plaintext
+from selectolax.parser import HTMLParser
 
 
 def get_config_field(section, field):
@@ -130,3 +130,27 @@ def get_word_count(dfp_full):
     dfp_full['word_count'] = np.round(dfp_full['characters'] / 6.5, 1)
 
     return dfp_full[['text', 'characters', 'word_count']]
+
+
+
+def get_text_selectolax(html):
+    if type(html) == str:
+        tree = HTMLParser(html)
+
+        if tree.body is None:
+            return None
+
+        for tag in tree.css('script'):
+            tag.decompose()
+        for tag in tree.css('style'):
+            tag.decompose()
+
+        text = tree.body.text(separator=' ').replace('\n', '').replace('\t', ' ').replace('\xa0', ' ')
+        return text
+
+    else:
+        return np.nan
+
+
+def htmlBody2plaintext(html_series):
+    return html_series.apply(lambda x: get_text_selectolax(x) if type(x) == str else np.nan)
