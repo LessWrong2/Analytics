@@ -20,7 +20,7 @@ def print_and_log(message):
 
     logging.basicConfig(filename=get_config_field('LOGGING', 'file'), level=logging.DEBUG)
 
-    print(message)
+    print(message) #TO-DO: Refactor to do print within logging statement, then don't need this extra wrapper
     logging.debug(message)
 
 
