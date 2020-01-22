@@ -99,9 +99,9 @@ def create_and_update_votes_sheet(dfv, spreadsheet, num_days=180):
 def create_and_update_all_sheets(dfs, spreadsheet_name):
     dfu = dfs['users']
     dfp = dfs['posts']
-    dfv = dfs['votes']
+    # dfv = dfs['votes']
 
-    s = Spread(get_config_field('GSHEETS', 'user'), spreadsheet_name, sheet='Users', create_spread=True, create_sheet=True)
+    s = Spread(spread=spreadsheet_name, sheet=None, create_spread=True, create_sheet=True, user=get_config_field('GSHEETS', 'user'))
     _ = create_and_update_user_sheet(dfu, s)
     _ = create_and_update_posts_sheet(dfp, s)
     # _ = create_and_update_votes_sheet(dfv, s) // we never use this
