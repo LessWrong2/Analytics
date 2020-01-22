@@ -231,7 +231,7 @@ def agg_votes_to_items(dfvv, dfp, dfc, start_date, pr='D'):
                  'num_distinct_viewers']
     comment_cols = ['_id', 'postId', 'postedAt', 'username', 'baseScore', 'num_votes', 'percent_downvotes']
 
-    d = agg_votes_to_period(dfvv, pr, start_date)
+    d = agg_votes_to_period(dfvv, start_date, pr)
 
     # add in post and comment details
     dd = d.merge(dfc[comment_cols], left_on='documentId', right_on='_id', how='left', suffixes=['', '_comment'])
@@ -250,7 +250,7 @@ def agg_votes_to_items(dfvv, dfp, dfc, start_date, pr='D'):
 
 def agg_votes_to_posts(dfvv, dfp, dfc, start_date, pr='D'):
     pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
-    d = agg_votes_to_period(dfvv, pr, start_date)
+    d = agg_votes_to_period(dfvv, start_date, pr)
 
     # add in comments
     post_cols = ['_id', 'postedAt', 'username', 'title', 'baseScore', 'num_votes', 'percent_downvotes',
@@ -292,19 +292,18 @@ def run_metric_pipeline(dfs, date_str, online=False, sheets=False, plots=False):
 
     allVotes, baseScoresD4, docScores = compute_karma_metric(dfs)
 
+    end_date = date_str
+    start_date = (pd.to_datetime(end_date) - pd.Timedelta(180, unit='d')).strftime('%Y-%m-%d')
+    start_date_sheets = (pd.to_datetime(end_date) - pd.Timedelta(30, unit='d')).strftime('%Y-%m-%d')
+
     if plots:
-
-        end_date = date_str
-        start_date = (pd.to_datetime(end_date) - pd.Timedelta(180, unit='d')).strftime('%Y-%m-%d')
-        start_date_sheets = (pd.to_datetime(end_date) - pd.Timedelta(30, unit='d')).strftime('%Y-%m-%d')
-
         plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='D', ma=7)
         plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='W', ma=4)
 
     if sheets:
         spreadsheet_name = get_config_field('GSHEETS', 'spreadsheet_name')
         spreadsheet_user = get_config_field('GSHEETS', 'user')
-        s = Spread(spread=spreadsheet_name, sheet='Users', create_spread=True, create_sheet=True, user=spreadsheet_user)
+        s = Spread(spread=spreadsheet_name, sheet=None, create_spread=True, create_sheet=True, user=spreadsheet_user)
 
         pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
 
