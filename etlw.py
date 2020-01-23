@@ -749,7 +749,7 @@ def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
         create_and_update_all_sheets(dfs_enriched, spreadsheet_name=get_config_field('GSHEETS', 'spreadsheet_name'))
 
     # ##7. LOAD DATA FILES TO POSTGRES DB
-    if postgres and ENV=='ec2':
+    if postgres:
         run_pg_pandas_transfer(dfs_enriched, date_str=date_str)
 
     # ##8. CLEAN UP OLD FILES TO SAVE SPACE
