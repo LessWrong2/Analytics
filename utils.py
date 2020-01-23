@@ -145,7 +145,7 @@ def htmlBody2plaintext(html_series):
     return html_series.apply(lambda x: get_text_selectolax(x) if type(x) == str else np.nan)
 
 
- def get_word_count(dfp_full):
+def get_word_count(dfp_full):
     dfp_full['html'] = dfp_full['contents'].str['html']
     dfp_full['text'] = parallelize_dataframe(dfp_full['html'], htmlBody2plaintext, n_cores=cpu_count())
 
