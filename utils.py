@@ -122,17 +122,6 @@ def get_valid_views(dfs):
     return valid_views[valid_views['documentId'].isin(get_valid_posts(dfs)['_id'])]
 
 
-def get_word_count(dfp_full):
-    dfp_full['html'] = dfp_full['contents'].str['html']
-    dfp_full['text'] = parallelize_dataframe(dfp_full['html'], htmlBody2plaintext, n_cores=cpu_count())
-
-    dfp_full['characters'] = dfp_full['text'].str.len()
-    dfp_full['word_count'] = np.round(dfp_full['characters'] / 6.5, 1)
-
-    return dfp_full[['text', 'characters', 'word_count']]
-
-
-
 def get_text_selectolax(html):
     if type(html) == str:
         tree = HTMLParser(html)
@@ -154,3 +143,14 @@ def get_text_selectolax(html):
 
 def htmlBody2plaintext(html_series):
     return html_series.apply(lambda x: get_text_selectolax(x) if type(x) == str else np.nan)
+
+
+ def get_word_count(dfp_full):
+    dfp_full['html'] = dfp_full['contents'].str['html']
+    dfp_full['text'] = parallelize_dataframe(dfp_full['html'], htmlBody2plaintext, n_cores=cpu_count())
+
+    dfp_full['characters'] = dfp_full['text'].str.len()
+    dfp_full['word_count'] = np.round(dfp_full['characters'] / 6.5, 1)
+
+    return dfp_full[['_id', 'text', 'characters', 'word_count']]
+
