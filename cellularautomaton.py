@@ -1,6 +1,29 @@
 import pandas as pd
-from gspread_pandas import Spread, Client
+from gspread_pandas import Spread
 from utils import timed, get_config_field
+
+
+def upload_to_gsheets(df, spreadsheet_name, sheet_name, create_spread=False, create_sheet=False, grant_access=None):
+    spreadsheet = Spread(spread=spreadsheet_name, sheet=sheet_name, create_spread=create_spread,
+                         create_sheet=create_sheet, user=get_config_field('GSHEETS', 'user'))
+    spreadsheet.df_to_sheet(df)
+
+    if grant_access == 'primary':
+        permissions_list = ['{email}|writer'.format(email=get_config_field('GSHEETS', 'primary_email'))]
+    elif grant_access == 'team':
+        emails = get_config_field('GSHEETS', 'team_emails').split(',')
+        permissions_list = ['{email}|writer'.format(email=email) for email in emails]
+    elif grant_access == 'public':
+        permissions_list = ['anyone|reader']
+    else:
+        permissions_list = None
+
+    if permissions_list:
+        spreadsheet.add_permissions(permissions_list)
+
+    print(spreadsheet.url)
+    return spreadsheet.url
+
 
 def create_and_update_user_sheet(dfu, spreadsheet, limit=None):
     # data = dfu[~dfu['banned']].sort_values('karma', ascending=False) //old
