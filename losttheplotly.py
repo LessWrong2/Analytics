@@ -48,8 +48,11 @@ def get_events_sheet(only_top=True):
 
 
 def plotly_ts_ma(raw_data=None, resampled_data=None, title='missing', color='yellow', start_date=None,
-                 end_date=pd.datetime.today(), date_col='postedAt', size=(700, 400), online=False,
+                 end_date=None, date_col='postedAt', size=(700, 400), online=False,
                  exclude_last_period=True, annotations=False, pr='D', ma=7, ymin=0):
+
+    if not end_date:
+        end_date = pd.datetime.today()
 
     pr_dict = {'D':'day', 'W':'week', 'M':'month', 'Y':'year'}
     pr_dictly = {'D':'daily', 'W':'weekly', 'M':'monthly', 'Y':'yearly'}
