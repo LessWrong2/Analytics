@@ -92,7 +92,7 @@ def plot_karma_metric(allVotes, start_date, end_date, online=False, pr='D', ma=7
 
     days_in_period = {'D': 1, 'W': 7, 'M': 365 / 12, 'Y': 365}
 
-    trends = create_trend_frame(days_in_period[pr] * 550, pr)
+    # trends = create_trend_frame(days_in_period[pr] * 550, pr)
 
     # plotly section
     date_col = 'votedAt'
@@ -109,13 +109,13 @@ def plot_karma_metric(allVotes, start_date, end_date, online=False, pr='D', ma=7
                    hoverinfo='x+y+name'),
         go.Scatter(x=votes_ts_ma[date_col], y=votes_ts_ma['effect'].round(1), line={'color': color, 'width': 4},
                    name='average of last {} {}s'.format(ma, pr_dict2[pr]),
-                   hoverinfo='x+y+name'),
-        go.Scatter(x=trends['date'], y=trends['5%'], line={'color': 'grey', 'width': 1, 'dash': 'dash'}, mode='lines',
-                   name='5% growth', hoverinfo='skip'),
-        go.Scatter(x=trends['date'], y=trends['7%'], line={'color': 'black', 'width': 2, 'dash': 'dash'}, mode='lines',
-                   name='7% growth', hoverinfo='x+y'),
-        go.Scatter(x=trends['date'], y=trends['10%'], line={'color': 'grey', 'width': 1, 'dash': 'dash'}, mode='lines',
-                   name='10% growth', hoverinfo='skip')
+                   hoverinfo='x+y+name') #,
+        # go.Scatter(x=trends['date'], y=trends['5%'], line={'color': 'grey', 'width': 1, 'dash': 'dash'}, mode='lines',
+        #            name='5% growth', hoverinfo='skip'),
+        # go.Scatter(x=trends['date'], y=trends['7%'], line={'color': 'black', 'width': 2, 'dash': 'dash'}, mode='lines',
+        #            name='7% growth', hoverinfo='x+y'),
+        # go.Scatter(x=trends['date'], y=trends['10%'], line={'color': 'grey', 'width': 1, 'dash': 'dash'}, mode='lines',
+        #            name='10% growth', hoverinfo='skip')
     ]
 
     layout = go.Layout(
