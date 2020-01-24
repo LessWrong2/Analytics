@@ -5,6 +5,7 @@ import plotly.graph_objs as go
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 from lwdash import *
 from utils import get_config_field, timed, get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes
+from gspread_pandas import Spread
 
 
 def generate_annotation_object(index, x, y, text):
@@ -60,15 +61,15 @@ def plotly_ts_ma(raw_data=None, resampled_data=None, title='missing', color='yel
     if resampled_data is None:
         resampled_data = raw_data.set_index(date_col).resample(pr).size().to_frame(title).reset_index()
 
-    dd_ma = resampled_data.set_index(date_col)[title].rolling(ma).mean().round(1).reset_index()
+    resampled_data_ma = resampled_data.set_index(date_col)[title].rolling(ma).mean().round(1).reset_index()
 
     if exclude_last_period:
-        resampled_data = resampled_data.iloc[:]
-        dd_ma = dd_ma.iloc[:]
+        resampled_data = resampled_data.iloc[:-1]
+        resampled_data_ma = resampled_data_ma.iloc[:-1]
 
     data = [
         go.Scatter(x=resampled_data[date_col], y=resampled_data[title], line={'color': color, 'width': 0.75}, name='{}-value'.format(pr_dictly[pr])),
-        go.Scatter(x=dd_ma[date_col], y=dd_ma[title], line={'color': color, 'width': 3}, name='{} {} avg'.format(ma, pr_dict[pr]))
+        go.Scatter(x=resampled_data_ma[date_col], y=resampled_data_ma[title], line={'color': color, 'width': 3}, name='{} {} avg'.format(ma, pr_dict[pr]))
     ]
 
     if annotations:
