@@ -682,8 +682,8 @@ def enrich_users(colls_dfs, date_str):
     users['most_recent_activity'] = users[
         ['most_recent_post', 'most_recent_comment', 'most_recent_vote', 'most_recent_view', 'createdAt']].max(axis=1)
     users['days_since_active'] = np.nan
-    users.loc[users['most_recent_activity'].notnull(), 'days_since_active'] = (date -
-            users.loc[users['most_recent_activity'].notnull(), 'days_since_active'])
+    users.loc[users['most_recent_activity'].notnull(), 'days_since_active'] = ((date -
+            users.loc[users['most_recent_activity'].notnull(), 'most_recent_activity']).dt.total_seconds()/(86400)).round(1)
 
     non_nan_columns = ['legacyKarma', 'karma', 'afKarma', 'postCount', 'commentCount',
        'frontpagePostCount', 'total_posts', 'total_comments', 'smallUpvote', 'smallDownvote',
