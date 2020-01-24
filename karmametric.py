@@ -286,19 +286,20 @@ def agg_votes_to_posts(dfvv, dfp, dfc, start_date, pr='D'):
     return dd
 
 @timed
-def run_metric_pipeline(dfs, date_str, online=False, sheets=False, plots=False):
+def run_metric_pipeline(dfs, end_date_str, online=False, sheets=False, plots=False):
     dfp = dfs['posts']
     dfc = dfs['comments']
 
     allVotes, baseScoresD4, docScores = compute_karma_metric(dfs)
 
-    end_date = date_str
+    end_date = pd.to_datetime(end_date_str).strftime('%Y-%m-%d')
     start_date = (pd.to_datetime(end_date) - pd.Timedelta(180, unit='d')).strftime('%Y-%m-%d')
     start_date_sheets = (pd.to_datetime(end_date) - pd.Timedelta(30, unit='d')).strftime('%Y-%m-%d')
 
+
     if plots:
-        plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='D', ma=7)
-        plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='W', ma=4)
+        _ = plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='D', ma=7)
+        _ = plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='W', ma=4)
 
     if sheets:
         spreadsheet_name = get_config_field('GSHEETS', 'spreadsheet_name')
