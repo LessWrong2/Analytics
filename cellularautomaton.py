@@ -3,10 +3,17 @@ from gspread_pandas import Spread
 from utils import timed, get_config_field
 
 
-def upload_to_gsheets(df, spreadsheet_name, sheet_name, create_spread=False, create_sheet=False, grant_access=None):
+def upload_to_gsheets(df, spreadsheet_name, sheet_name, create_spread=False, create_sheet=False, grant_access=None,
+                      index=False, format_columns=False):
+
+    df = df.copy()
+
+    if format_columns:
+        df.columns = df.columns.to_series().str.replace('_', ' ').str.title()
+
     spreadsheet = Spread(spread=spreadsheet_name, sheet=sheet_name, create_spread=create_spread,
                          create_sheet=create_sheet, user=get_config_field('GSHEETS', 'user'))
-    spreadsheet.df_to_sheet(df)
+    spreadsheet.df_to_sheet(df, index=index)
 
     if grant_access == 'primary':
         permissions_list = ['{email}|writer'.format(email=get_config_field('GSHEETS', 'primary_email'))]
