@@ -16,7 +16,7 @@ table_creation_commands = {
         banned                                  boolean,
         legacy                                  boolean,
         shortform_feed_id                       varchar(256),
-        sign_up_recaptcha_rating                real,
+        sign_up_re_captcha_rating               real,
         reviewed_by_user_id                     varchar(64),
         earliest_activity                       timestamp,
         true_earliest                           timestamp,
@@ -59,7 +59,7 @@ table_creation_commands = {
         user_id                         varchar(64) NOT NULL,
         posted_at                       timestamp   NOT NULL,
         username                        text,
-        displayName                     text,
+        display_name                    text,
         title                           text,
         af                              BOOLEAN     NOT NULL,
         base_score                      numeric     NOT NULL,
@@ -96,7 +96,7 @@ table_creation_commands = {
         author_is_unreviewed            BOOLEAN     NOT NULL,
         most_recent_comment             timestamp,
         user_agent                      text,
-        createdAt                       timestamp   NOT NULL,
+        created_at                       timestamp   NOT NULL,
         birth                           timestamp
     );""",
     'comments': """CREATE TABLE comments
@@ -104,7 +104,7 @@ table_creation_commands = {
         _id               varchar(64) PRIMARY KEY,
         user_id           varchar(64) NOT NULL,
         username          varchar(64),
-        displayName       text,
+        display_name       text,
         post_id           varchar(64),
         posted_at         timestamp   NOT NULL,
         af                BOOLEAN NOT NULL,
@@ -139,13 +139,32 @@ table_creation_commands = {
         cancelled       BOOLEAN     NOT NULL,
         is_unvote       BOOLEAN     NOT NULL,
         af_power        smallint    NOT NULL,
-        legacy          BOOLEAN     NOT NULL
+        legacy          BOOLEAN     NOT NULL,
+        birth           timestamp
     );""",
     'views': """CREATE TABLE views
     (
         user_id     varchar(64) NOT NULL,
-        document_id varchar(64) NOT NULL,
+        document_id varchar(64),
         created_at  timestamp   NOT NULL,
-        date        date
-    );"""
+        birth       timestamp
+    );""",
+    'user_agents': """CREATE TABLE user_agents
+(
+    ua_string           text NOT NULL,
+    ua_pretty           text,
+    browser_family      varchar(128),
+    browser_version     varchar(128),
+    os_family           varchar(64),
+    os_version          varchar(64),
+    device_family       varchar(256),
+    device_brand         varchar(64),
+    device_model        varchar(256),
+    is_mobile           boolean,
+    is_tablet           boolean,
+    is_mobile_or_tablet boolean,
+    is_desktop          boolean,
+    is_bot              boolean,
+    birth               timestamp
+);"""
 }
