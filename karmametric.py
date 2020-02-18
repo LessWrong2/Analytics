@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-import plotly
-import plotly.plotly as py
+from chart_studio.tools import set_credentials_file
+import chart_studio.plotly.plotly as py
 import plotly.graph_objs as go
 from plotly.offline import init_notebook_mode, iplot
 from gspread_pandas import Spread
@@ -85,14 +85,14 @@ def create_trend_frame(initial_value, freq):
     return trends
 
 
-def plot_karma_metric(allVotes, online=False, pr='D', ma=7, start_date='2019-04-01', end_date='2019-10-01'):
+def plot_karma_metric(allVotes, start_date, end_date, online=False, pr='D', ma=7):
     votes_ts = allVotes.set_index('votedAt').resample(pr)['effect'].sum()
     votes_ts = votes_ts.reset_index().iloc[:-1]
     votes_ts_ma = votes_ts.set_index('votedAt')['effect'].rolling(ma).mean().round(1).reset_index()
 
     days_in_period = {'D': 1, 'W': 7, 'M': 365 / 12, 'Y': 365}
 
-    trends = create_trend_frame(days_in_period[pr] * 550, pr)
+    # trends = create_trend_frame(days_in_period[pr] * 550, pr)
 
     # plotly section
     date_col = 'votedAt'
@@ -109,13 +109,13 @@ def plot_karma_metric(allVotes, online=False, pr='D', ma=7, start_date='2019-04-
                    hoverinfo='x+y+name'),
         go.Scatter(x=votes_ts_ma[date_col], y=votes_ts_ma['effect'].round(1), line={'color': color, 'width': 4},
                    name='average of last {} {}s'.format(ma, pr_dict2[pr]),
-                   hoverinfo='x+y+name'),
-        go.Scatter(x=trends['date'], y=trends['5%'], line={'color': 'grey', 'width': 1, 'dash': 'dash'}, mode='lines',
-                   name='5% growth', hoverinfo='skip'),
-        go.Scatter(x=trends['date'], y=trends['7%'], line={'color': 'black', 'width': 2, 'dash': 'dash'}, mode='lines',
-                   name='7% growth', hoverinfo='x+y'),
-        go.Scatter(x=trends['date'], y=trends['10%'], line={'color': 'grey', 'width': 1, 'dash': 'dash'}, mode='lines',
-                   name='10% growth', hoverinfo='skip')
+                   hoverinfo='x+y+name') #,
+        # go.Scatter(x=trends['date'], y=trends['5%'], line={'color': 'grey', 'width': 1, 'dash': 'dash'}, mode='lines',
+        #            name='5% growth', hoverinfo='skip'),
+        # go.Scatter(x=trends['date'], y=trends['7%'], line={'color': 'black', 'width': 2, 'dash': 'dash'}, mode='lines',
+        #            name='7% growth', hoverinfo='x+y'),
+        # go.Scatter(x=trends['date'], y=trends['10%'], line={'color': 'grey', 'width': 1, 'dash': 'dash'}, mode='lines',
+        #            name='10% growth', hoverinfo='skip')
     ]
 
     layout = go.Layout(
@@ -128,7 +128,7 @@ def plot_karma_metric(allVotes, online=False, pr='D', ma=7, start_date='2019-04-
 
     fig = go.Figure(data=data, layout=layout)
 
-    plotly.tools.set_credentials_file(username=get_config_field('PLOTLY', 'username'),
+    set_credentials_file(username=get_config_field('PLOTLY', 'username'),
                                       api_key=get_config_field('PLOTLY', 'api_key'))
     init_notebook_mode(connected=True)
 
@@ -141,7 +141,7 @@ def plot_karma_metric(allVotes, online=False, pr='D', ma=7, start_date='2019-04-
     return votes_ts
 
 
-def agg_votes_to_period(dfvv, pr='D', start_date='2019-06'):
+def agg_votes_to_period(dfvv, start_date, pr='D'):
     pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
 
     post_cols = ['_id', 'postedAt', 'username', 'title', 'baseScore', 'num_votes', 'percent_downvotes',
@@ -226,12 +226,12 @@ def post_agg_select_columns(dd, pr):
     return dd[cols].set_index(['votedAt', 'title'])
 
 
-def agg_votes_to_items(dfvv, dfp, dfc, pr='D', start_date='2019-06-01'):
+def agg_votes_to_items(dfvv, dfp, dfc, start_date, pr='D'):
     post_cols = ['_id', 'postedAt', 'username', 'title', 'baseScore', 'num_votes', 'percent_downvotes',
                  'num_distinct_viewers']
     comment_cols = ['_id', 'postId', 'postedAt', 'username', 'baseScore', 'num_votes', 'percent_downvotes']
 
-    d = agg_votes_to_period(dfvv, pr, start_date)
+    d = agg_votes_to_period(dfvv, start_date, pr)
 
     # add in post and comment details
     dd = d.merge(dfc[comment_cols], left_on='documentId', right_on='_id', how='left', suffixes=['', '_comment'])
@@ -248,9 +248,9 @@ def agg_votes_to_items(dfvv, dfp, dfc, pr='D', start_date='2019-06-01'):
     return dd
 
 
-def agg_votes_to_posts(dfvv, dfp, dfc, pr='D', start_date='2019-06-01'):
+def agg_votes_to_posts(dfvv, dfp, dfc, start_date, pr='D'):
     pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
-    d = agg_votes_to_period(dfvv, pr, start_date)
+    d = agg_votes_to_period(dfvv, start_date, pr)
 
     # add in comments
     post_cols = ['_id', 'postedAt', 'username', 'title', 'baseScore', 'num_votes', 'percent_downvotes',
@@ -286,35 +286,36 @@ def agg_votes_to_posts(dfvv, dfp, dfc, pr='D', start_date='2019-06-01'):
     return dd
 
 @timed
-def run_metric_pipeline(dfs, online=False, sheets=False, plots=False):
+def run_metric_pipeline(dfs, end_date_str, online=False, sheets=False, plots=False):
     dfp = dfs['posts']
     dfc = dfs['comments']
 
     allVotes, baseScoresD4, docScores = compute_karma_metric(dfs)
 
+    end_date = pd.to_datetime(end_date_str).strftime('%Y-%m-%d')
+    start_date = (pd.to_datetime(end_date) - pd.Timedelta(180, unit='d')).strftime('%Y-%m-%d')
+    start_date_sheets = (pd.to_datetime(end_date) - pd.Timedelta(30, unit='d')).strftime('%Y-%m-%d')
+
+
     if plots:
-
-        start_date = '2019-04-01'
-        end_date = '2019-10-01'
-
-        plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='D', ma=7)
-        plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='W', ma=4)
+        _ = plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='D', ma=7)
+        _ = plot_karma_metric(allVotes, online=online, start_date=start_date, end_date=end_date, pr='W', ma=4)
 
     if sheets:
         spreadsheet_name = get_config_field('GSHEETS', 'spreadsheet_name')
         spreadsheet_user = get_config_field('GSHEETS', 'user')
-        s = Spread(spreadsheet_user, spreadsheet_name, sheet='Users', create_spread=True, create_sheet=True)
+        s = Spread(spread=spreadsheet_name, sheet=None, create_spread=True, create_sheet=True, user=spreadsheet_user)
 
         pr_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
 
         for pr in ['D', 'W']:
-            votes2posts = agg_votes_to_posts(allVotes, dfp, dfc, pr=pr)
+            votes2posts = agg_votes_to_posts(allVotes, dfp, dfc, pr=pr, start_date=start_date_sheets)
             data = votes2posts.reset_index().sort_values(['votedAt', 'rank'], ascending=[False, True]).copy()
             data['birth'] = pd.datetime.now()
             data.columns = [col.replace('_', ' ').title() for col in data.columns]
             s.df_to_sheet(data, replace=True, sheet='KM: Posts/{}'.format(pr_dict[pr]), index=False)
 
-            votes2items = agg_votes_to_items(allVotes, dfp, dfc, pr=pr)
+            votes2items = agg_votes_to_items(allVotes, dfp, dfc, pr=pr, start_date=start_date_sheets)
             data = votes2items.reset_index().sort_values(['votedAt', 'rank'], ascending=[False, True]).copy()
             data['birth'] = pd.datetime.now()
             data.columns = [col.replace('_', ' ').title() for col in data.columns]

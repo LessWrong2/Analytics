@@ -1,12 +1,33 @@
 import pandas as pd
+import numpy as np
 import configparser
 import sqlalchemy as sqa
+import re
 from setthetable import table_creation_commands
-from utils import timed, get_config_field
+from utils import timed, get_config_field, print_and_log
+from io import StringIO
 
 from IPython.display import display
 
+
 BASE_PATH = get_config_field('PATHS','base')
+
+def camel_to_snake(name):
+    name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+
+def clean_text(df):
+
+    def replace_strings(col, pat, repl):
+        df.loc[:, col] = df.loc[:, col].str.replace(pat, repl)
+
+    for col in df.columns:
+        if pd.api.types.is_string_dtype(df[col]):
+            _ = [replace_strings(col, pat, repl) for pat, repl in [('\\', ''), ('\t', '  '), ('\n', '\\n')]]
+
+    return df
+
 
 def prepare_users(dfu):
     users_sql_cols = ['_id',
@@ -62,7 +83,6 @@ def prepare_users(dfu):
     users.loc[:,'afKarma'] = users['afKarma'].fillna(0).astype(int)
     users.loc[:,'num_drafts'] = users['num_drafts'].replace(False, 0).fillna(0).astype(int)
     users.loc[:,'percent_drafts'] = users['percent_drafts'].replace(False, 0).fillna(0)
-    users.loc[:,'birth'] = pd.datetime.now()
     return users
 
 def prepare_posts(dfp):
@@ -112,7 +132,6 @@ def prepare_posts(dfp):
     ]
 
     posts = dfp[posts_sql_cols].sort_values('postedAt', ascending=False)
-    posts.loc[:,'birth'] = pd.datetime.now()
 
     return posts
 
@@ -147,8 +166,13 @@ def prepare_comments(dfc):
 
     comments = dfc[comments_sql_cols].sort_values('postedAt', ascending=False)
     comments.loc[:,'gw'] = comments['gw'].fillna(False)
-    comments.loc[:,'birth'] = pd.datetime.now()
+
     return comments
+
+def prepare_views(dpv):
+    dpv.loc[:,'documentId'] = dpv.loc[:,'documentId'].str[0:25] #because of one stupid row
+    dpv = dpv.sort_values('createdAt')
+    return dpv
 
 
 def get_pg_engine():
@@ -167,70 +191,115 @@ def prep_frames_for_db(dfs):
     prep_funcs = {
         'users': prepare_users,
         'posts': prepare_posts,
-        'comments': prepare_comments
+        'comments': prepare_comments,
+        'votes': lambda x: x,
+        'views': prepare_views
     }
 
-    [prep_funcs[coll](dfs[coll])
-         .to_csv(BASE_PATH + 'export/{}.csv'.format(coll), index=False) for coll in
-     ['users', 'posts', 'comments']]
+    return {coll: prep_funcs[coll](dfs[coll]) for coll in ['users', 'posts', 'comments', 'votes', 'views']}
 
 
-def truncate_or_drop_tables(tables, conn, drop=False):
+def truncate_or_drop_tables(tables, conn=None, drop=False):
+
     if type(tables) == str:
         tables_str = tables
     else:
         tables_str = ', '.join(tables)
 
     if drop:
-        conn.execute('DROP TABLE IF EXISTS {}'.format(tables_str))
+        command = 'DROP TABLE IF EXISTS {} CASCADE'.format(tables_str)
     else:
-        conn.execute('TRUNCATE {}'.format(tables_str))
+        command = 'TRUNCATE {}'.format(tables_str)
+
+    if not conn:
+        engine = get_pg_engine()
+        with engine.begin() as conn:
+            conn.execute(command)
+        engine.dispose()
+    else:
+        with conn.begin():
+            conn.execute(command)
 
 
-def create_tables(tables, conn):
+def create_tables(tables, conn=None):
+
     if type(tables) == str:
         tables = [tables]
 
-    [conn.execute(table_creation_commands[table]) for table in tables]
+    if not conn:
+        engine = get_pg_engine()
+        with engine.begin() as conn:
+            [conn.execute(table_creation_commands[table]) for table in tables]
+        engine.dispose()
+    else:
+        with conn.begin():
+            [conn.execute(table_creation_commands[table]) for table in tables]
 
-def load_csvs_to_pg(date_str, conn):
-    for coll in ['votes', 'views']:
-        sql = "COPY {} FROM '{}processed/{}/{}.csv' DELIMITER ',' CSV HEADER;".format(coll, BASE_PATH, date_str, coll)
-        print(sql)
-        conn.execute(sql)
-
-    for coll in ['posts', 'comments', 'users']:
-        sql = "COPY {} FROM '{}export/{}.csv' DELIMITER ',' CSV HEADER;".format(coll, BASE_PATH, coll)
-        print(sql)
-        conn.execute(sql)
 
 @timed
-def run_pg_pandas_transfer(dfs, date_str):
+def bulk_upload_to_pg(df, table_name, conn=None):
+
+    df.loc[:,'birth'] = pd.datetime.now()
+    df.columns = df.columns.to_series().apply(camel_to_snake)
+    df = clean_text(df)
+
+    sep = '\t'
+
+    buffer = StringIO()
+    buffer.write(df.to_csv(index=None, header=None, sep=sep, na_rep=''))  # Write the Pandas DataFrame as a csv to the buffer
+    buffer.seek(0)  # Be sure to reset the position to the start of the stream
+
+    def execute_copy(conn):
+        dbapi_conn = conn.connection
+        with dbapi_conn.cursor() as c:
+            c.copy_from(buffer, table_name, columns=df.columns, sep=sep, null='')
+
+    if not conn:
+        engine = get_pg_engine()
+        with engine.begin() as conn:
+            execute_copy(conn)
+    else:
+        execute_copy(conn)
+
+
+
+@timed
+def run_pg_pandas_transfer(dfs, drop_tables=False, date_str=3):
     tables = ['users', 'posts', 'comments', 'votes', 'views']
 
-    prep_frames_for_db(dfs)
+    dfs_prepared = prep_frames_for_db(dfs)
 
-    engine = get_pg_engine()
+    try:
+        engine = get_pg_engine()
 
-    conn = engine.connect()
-    transaction = conn.begin()
-    print('truncating postgres tables')
-    truncate_or_drop_tables(tables, conn, drop=False)
-    print('loading csv\'s into postgres db')
-    load_csvs_to_pg(date_str, conn)
-    transaction.commit()
-    print('transaction finished')
-    conn.close()
+        with engine.begin() as conn:
+
+            if drop_tables:
+                print_and_log('dropping postgres tables')
+            else:
+                print_and_log('truncating postgres tables')
+            truncate_or_drop_tables(tables, conn=conn, drop=drop_tables)
+            if drop_tables:
+                create_tables(tables, conn)
+
+            print_and_log('loading tables into postgres db')
+            [bulk_upload_to_pg(dfs_prepared[coll], table_name=coll, conn=conn) for coll in tables]
+
+            print_and_log('transaction finished')
+
+    except:
+        print_and_log('transfer failed')
+    finally:
+        engine.dispose()
 
 
 def test_db_contents():
     tables = ['users', 'posts', 'comments', 'votes', 'views']
     engine = get_pg_engine()
-    conn = engine.connect()
-    _ = [display(pd.read_sql("SELECT * FROM {} LIMIT 3".format(coll), conn)) for coll in tables]
-    print({table: conn.execute("SELECT COUNT(*) FROM {}".format(table)).first()[0] for table in tables})
-
-    conn.close()
+    with engine.begin() as conn:
+        print({table: conn.execute("SELECT COUNT(*) FROM {}".format(table)).first()[0] for table in tables})
+        _ = [display(pd.read_sql("SELECT * FROM {} LIMIT 3".format(coll), conn)) for coll in tables]
+    engine.dispose()
 
 
 

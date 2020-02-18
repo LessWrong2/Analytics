@@ -1,11 +1,11 @@
 import pandas as pd
-import plotly
-import plotly.plotly as py
+from chart_studio.tools import set_credentials_file
+import chart_studio.plotly.plotly as py
 import plotly.graph_objs as go
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 from lwdash import *
-from karmametric import *
-from utils import timed, get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes
+from utils import get_config_field, timed, get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes
+from gspread_pandas import Spread
 
 
 def generate_annotation_object(index, x, y, text):
@@ -37,7 +37,7 @@ def generate_annotation_object(index, x, y, text):
 
 def get_events_sheet(only_top=True):
     spreadsheet_user = get_config_field('GSHEETS', 'user')
-    s = Spread(spreadsheet_user, 'Release & PR Events', sheet='Events', create_spread=False, create_sheet=False)
+    s = Spread(user=spreadsheet_user, spread='Release & PR Events', sheet='Events', create_spread=False, create_sheet=False)
     events = s.sheet_to_df()
     events.index = pd.to_datetime(events.index)
     events = events.reset_index().reset_index().set_index('date')
@@ -49,30 +49,33 @@ def get_events_sheet(only_top=True):
 
 
 def plotly_ts_ma(raw_data=None, resampled_data=None, title='missing', color='yellow', start_date=None,
-                 end_date=pd.datetime.today(), date_col='postedAt', size=(700, 400), online=False,
-                 exclude_last_period=True, annotations=False, pr='D', ma=7):
+                 end_date=None, date_col='postedAt', size=(700, 400), online=False,
+                 exclude_last_period=True, annotations=False, pr='D', ma=7, ymin=0):
+
+    if not end_date:
+        end_date = pd.datetime.today()
 
     pr_dict = {'D':'day', 'W':'week', 'M':'month', 'Y':'year'}
     pr_dictly = {'D':'daily', 'W':'weekly', 'M':'monthly', 'Y':'yearly'}
 
     if resampled_data is None:
-        resampled_data = raw_data.set_index(date_col).resample(pr, label='right').size().to_frame(title).reset_index()
+        resampled_data = raw_data.set_index(date_col).resample(pr).size().to_frame(title).reset_index()
 
-    dd_ma = resampled_data.set_index(date_col)[title].rolling(ma).mean().round(1).reset_index()
+    resampled_data_ma = resampled_data.set_index(date_col)[title].rolling(ma).mean().round(1).reset_index()
 
     if exclude_last_period:
         resampled_data = resampled_data.iloc[:-1]
-        dd_ma = dd_ma.iloc[:-1]
+        resampled_data_ma = resampled_data_ma.iloc[:-1]
 
     data = [
         go.Scatter(x=resampled_data[date_col], y=resampled_data[title], line={'color': color, 'width': 0.75}, name='{}-value'.format(pr_dictly[pr])),
-        go.Scatter(x=dd_ma[date_col], y=dd_ma[title], line={'color': color, 'width': 3}, name='{} {} avg'.format(ma, pr_dict[pr]))
+        go.Scatter(x=resampled_data_ma[date_col], y=resampled_data_ma[title], line={'color': color, 'width': 3}, name='{} {} avg'.format(ma, pr_dict[pr]))
     ]
 
     if annotations:
         events = get_events_sheet(only_top=False)
         annotations = [generate_annotation_object(index=index, x=date, y=resampled_data.set_index(date_col)[title], text=event)
-                       for date, index, event in events[resampled_data[date_col].min():][['index', 'event']].resample(pr, label='right')
+                       for date, index, event in events[resampled_data[date_col].min():][['index', 'event']].resample(pr)
                            .agg({'event': lambda x: ';<br>'.join(x.tolist()) if len(x) > 0 else np.nan})
                            .dropna().reset_index().reset_index().set_index('date').itertuples()]
     else:
@@ -82,7 +85,7 @@ def plotly_ts_ma(raw_data=None, resampled_data=None, title='missing', color='yel
         autosize = True, width=size[0], height=size[1],
         title= title,
         xaxis={'range': [start_date, end_date]},
-        yaxis={'range': [0, resampled_data.set_index(date_col)[start_date:][title].max() * 1.05],
+        yaxis={'range': [ymin, resampled_data.set_index(date_col)[start_date:][title].max() * 1.05],
                'title': title},
         annotations=annotations
     )
@@ -95,9 +98,9 @@ def plotly_ts_ma(raw_data=None, resampled_data=None, title='missing', color='yel
         iplot(fig, filename=title)
 
 
-def plotly_uniques(raw_data, date_col, title, start_date, color, size, online=False, annotations=False, pr='D', ma=7):
+def plotly_uniques(raw_data, date_col, title, start_date, end_date, color, size, online=False, annotations=False, pr='D', ma=7):
     dd = raw_data.set_index(date_col)['2009':].resample(pr)['userId'].nunique().to_frame(title).reset_index()
-    plotly_ts_ma(resampled_data=dd, title=title, color=color, start_date=start_date, date_col=date_col, size=size,
+    plotly_ts_ma(resampled_data=dd, title=title, color=color, start_date=start_date, end_date=end_date, date_col=date_col, size=size,
                  online=online, annotations=annotations, pr=pr, ma=ma)
 
 
@@ -120,24 +123,20 @@ def plot_table(df, title='missing', online=False):
 
 
 @timed
-def run_plotline(dfs, online=False, start_date=None, size=(1000, 400), pr='D', ma=7, annotations=False):
+def run_plotline(dfs, online=False, start_date=None, end_date=None, size=(1000, 400), pr='D', ma=7, annotations=False):
 
-    plotly.tools.set_credentials_file(username=get_config_field('PLOTLY', 'username'),
+    set_credentials_file(username=get_config_field('PLOTLY', 'username'),
                                       api_key=get_config_field('PLOTLY', 'api_key'))
     init_notebook_mode(connected=True)
 
-    dfu = dfs['users']
-    dfp = dfs['posts']
-    dfc = dfs['comments']
-    dfv = dfs['votes']
     dpv = dfs['views']  # pv = post-views
 
-    valid_users = get_valid_users(dfu)
-    valid_posts = get_valid_posts(dfp)
-    valid_comments = get_valid_comments(dfc, dfu)
-    valid_votes = get_valid_votes(dfv,dfp, dfc, dfu)
+    valid_users = get_valid_users(dfs, required_minimum_posts_views=5)
+    valid_posts = get_valid_posts(dfs, required_upvotes=1)
+    valid_comments = get_valid_comments(dfs)
+    valid_votes = get_valid_votes(dfs)
 
-    plotly_args = {'start_date': start_date, 'pr': pr, 'ma': ma, 'size': size,
+    plotly_args = {'start_date': start_date, 'end_date': end_date, 'pr': pr, 'ma': ma, 'size': size,
                    'online': online, 'annotations': annotations}
 
     plotly_ts_ma(title='Accounts Created, 5+ posts_viewed', raw_data=valid_users, date_col='true_earliest', color='grey', **plotly_args)
@@ -154,5 +153,5 @@ def run_plotline(dfs, online=False, start_date=None, size=(1000, 400), pr='D', m
 
     plotly_ts_ma(title='Num Logged-In Post Views', raw_data=dpv, date_col='createdAt', color='red', **plotly_args)
 
-    plot_table(downvote_monitoring(dfv, dfp, dfc, dfu, 2, ), title='Downvote Monitoring', online=online)
+    # plot_table(downvote_monitoring(dfv, dfp, dfc, dfu, 2, ), title='Downvote Monitoring', online=online)
 

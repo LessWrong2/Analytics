@@ -1,9 +1,40 @@
 import pandas as pd
-from gspread_pandas import Spread, Client
+from gspread_pandas import Spread
 from utils import timed, get_config_field
 
+
+def upload_to_gsheets(df, spreadsheet_name, sheet_name, create_spread=False, create_sheet=False, grant_access=None,
+                      index=False, format_columns=False):
+
+    df = df.copy()
+
+    if format_columns:
+        df.columns = df.columns.to_series().str.replace('_', ' ').str.title()
+
+    spreadsheet = Spread(spread=spreadsheet_name, sheet=sheet_name, create_spread=create_spread,
+                         create_sheet=create_sheet, user=get_config_field('GSHEETS', 'user'))
+    spreadsheet.df_to_sheet(df, index=index)
+
+    if grant_access == 'primary':
+        permissions_list = ['{email}|writer'.format(email=get_config_field('GSHEETS', 'primary_email'))]
+    elif grant_access == 'team':
+        emails = get_config_field('GSHEETS', 'team_emails').split(',')
+        permissions_list = ['{email}|writer'.format(email=email) for email in emails]
+    elif grant_access == 'public':
+        permissions_list = ['anyone|reader']
+    else:
+        permissions_list = None
+
+    if permissions_list:
+        spreadsheet.add_permissions(permissions_list)
+
+    print(spreadsheet.url)
+    return spreadsheet.url
+
+
 def create_and_update_user_sheet(dfu, spreadsheet, limit=None):
-    data = dfu[~dfu['banned']].sort_values('karma', ascending=False)
+    # data = dfu[~dfu['banned']].sort_values('karma', ascending=False) //old
+    data = dfu[(dfu['karma'] > 0) | (dfu['num_distinct_posts_viewed'] > 0) | (dfu['signUpReCaptchaRating'] >= 0.7)]
     data.loc[data['days_since_active'] <= 0, 'days_since_active'] = 0
     data['username'] = '=HYPERLINK("www.lesswrong.com/users/'.lower() + data['username'] + '", "' + data[
         'username'] + '")'
@@ -98,12 +129,12 @@ def create_and_update_votes_sheet(dfv, spreadsheet, num_days=180):
 def create_and_update_all_sheets(dfs, spreadsheet_name):
     dfu = dfs['users']
     dfp = dfs['posts']
-    dfv = dfs['votes']
+    # dfv = dfs['votes']
 
-    s = Spread(get_config_field('GSHEETS', 'user'), spreadsheet_name, sheet='Users', create_spread=True, create_sheet=True)
+    s = Spread(spread=spreadsheet_name, sheet=None, create_spread=True, create_sheet=True, user=get_config_field('GSHEETS', 'user'))
     _ = create_and_update_user_sheet(dfu, s)
     _ = create_and_update_posts_sheet(dfp, s)
-    _ = create_and_update_votes_sheet(dfv, s)
+    # _ = create_and_update_votes_sheet(dfv, s) // we never use this
 
     return s
 

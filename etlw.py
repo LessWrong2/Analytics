@@ -15,8 +15,8 @@ from losttheplotly import run_plotline
 from cellularautomaton import *
 from karmametric import run_metric_pipeline
 from flipthetable import run_pg_pandas_transfer
-
-from utils import timed, print_and_log, get_config_field, get_valid_posts, get_valid_votes
+from utils import timed, print_and_log, get_config_field, get_valid_users, get_valid_posts, \
+    get_valid_comments, get_valid_votes, get_valid_views
 
 MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
 MONGO_DB_URL = get_config_field('MONGODB', 'prod_db_url')
@@ -424,16 +424,18 @@ def clean_raw_logins(logins_df):
 
     logins_parsed = logins_df
     logins_parsed.loc[:, 'createdAt'] = pd.to_datetime(logins_parsed['createdAt'])
+    logins_parsed.loc[:, 'type'] = logins_parsed['properties'].str['type']
 
     return logins_parsed
 
 
-def calculate_vote_stats_for_content(votes_df):
+def calculate_vote_stats_for_content(colls_dfs):
     """Accepts dataframe on votes, aggregates to document level and returns stats.
 
     Returns stats about kinds of votes placed (small/big,up/down) and when last vote was made.
     """
 
+    votes_df = get_valid_votes(colls_dfs)
     votes_df['voteType'] = votes_df['voteType'].astype(str)
 
     vote_type_stats = votes_df.groupby(['documentId', 'voteType']).size().unstack(level='voteType').fillna(0).astype(
@@ -456,12 +458,13 @@ def calculate_vote_stats_for_content(votes_df):
     return vote_stats
 
 
-def calculate_vote_stats_for_users(votes_df):
+def calculate_vote_stats_for_users(colls_dfs):
     """Accepts dataframe on votes, aggregates to users and returns stats for users.
 
     Returns stats about kinds of votes placed (small/big,up/down) and when last and earliest votes were made.
     """
 
+    votes_df = get_valid_votes(colls_dfs)
     votes_df['voteType'] = votes_df['voteType'].astype(str)
 
     vote_date_stats = votes_df.groupby('userId').apply(lambda x: pd.Series(data={ 'most_recent_vote': x['votedAt'].max(),
@@ -485,9 +488,9 @@ def calculate_vote_stats_for_users(votes_df):
     return vote_stats
 
 
-def calc_user_view_stats(views_df, posts_df):
+def calc_user_view_stats(colls_dfs):
 
-    views_df = views_df[views_df['documentId'].isin(get_valid_posts(posts_df)['_id'])]
+    views_df = get_valid_views(colls_dfs)
 
     view_date_stats = views_df.groupby('userId')['createdAt'].agg(
         {'num_views': 'count', 'most_recent_view': 'max', 'earliest_view': 'min'})
@@ -507,9 +510,10 @@ def calc_user_view_stats(views_df, posts_df):
     return view_stats
 
 
-def calc_user_comment_stats(comments):  # df -> df
+def calc_user_comment_stats(colls_dfs):  # dict of df -> df
     """Calculates aggregates statistics over a user's comments."""
 
+    comments = get_valid_comments(colls_dfs)
     comment_stats = comments.groupby('userId')['postedAt'].agg({'total_comments': 'size',
                                                                 'earliest_comment': 'min',
                                                                 'most_recent_comment': 'max'})
@@ -517,13 +521,9 @@ def calc_user_comment_stats(comments):  # df -> df
     return comment_stats
 
 
-def calc_user_post_stats(posts):  # df -> df
+def calc_user_post_stats(colls_dfs):  # dict of df -> df
     """Calculates aggregate statistics over a user's posts."""
-
-    # currently comment out all word character related stuff due to mess.
-    # dfp['characters'] = dfp['body'].str.len()
-    # dfp['words'] = (dfp['characters']/6).round(2)
-    # dfp.loc[dfp['body'].str.contains('image/png|image/jpeg') == True, 'characters'] = np.nan
+    posts = get_valid_posts(colls_dfs, required_upvotes=None)
 
     # dfp['frontpageDate'] = dfp['frontpageDate'].replace(0, np.nan) # this should *not* be necessary. Remember to track it upstream.
     posts['frontpaged'] = posts['frontpageDate'].notnull()
@@ -537,7 +537,13 @@ def calc_user_post_stats(posts):  # df -> df
     return post_stats
 
 
-def calc_user_recent_activity(posts, comments, votes, views, present_date):
+def calc_user_recent_activity(colls_dfs, present_date):
+
+    posts = get_valid_posts(colls_dfs) # mostly useful to exclude drafts
+    comments = get_valid_comments(colls_dfs)
+    votes = get_valid_votes(colls_dfs)
+    views = get_valid_views(colls_dfs)
+
     def activity_last_n(n, date):
         # could be made to contain another function called repeatedly, but it's fine. It works.
 
@@ -545,7 +551,7 @@ def calc_user_recent_activity(posts, comments, votes, views, present_date):
 
         comments_ln = comments[(comments['postedAt'] > n_days_ago)].groupby('userId').size().to_frame(
             'num_comments_last_{}_days'.format(n))
-        posts_ln = posts[(posts['postedAt'] > n_days_ago) & (~posts['draft'])].groupby('userId').size().to_frame(
+        posts_ln = posts[(posts['postedAt'] > n_days_ago)].groupby('userId').size().to_frame(
             'num_posts_last_{}_days'.format(n))
         votes_ln = votes[(votes['votedAt'] > n_days_ago)].groupby('userId').size().to_frame(
             'num_votes_last_{}_days'.format(n))
@@ -573,11 +579,12 @@ def calc_user_recent_activity(posts, comments, votes, views, present_date):
 
 
 def enrich_posts(colls_dfs):
-    users = colls_dfs['users']
-    posts = colls_dfs['posts']
-    comments = colls_dfs['comments']
-    views = colls_dfs['views']
-    votes = colls_dfs['votes']
+
+    posts = colls_dfs['posts'] # don't want to exclude drafts via filtering
+    comments = get_valid_comments(colls_dfs)
+    views = get_valid_views(colls_dfs)
+    users = get_valid_users(colls_dfs)
+
 
     def num_commenters(commenters_list):
         if commenters_list == commenters_list:  # check for isnan, works since nan == nan is false
@@ -596,7 +603,7 @@ def enrich_posts(colls_dfs):
     }))
 
     # vote stats for post
-    vote_stats = calculate_vote_stats_for_content(votes)
+    vote_stats = calculate_vote_stats_for_content(colls_dfs)
 
     # view stats for post
     view_date_stats = views.groupby('documentId').apply(lambda x: pd.Series(data={
@@ -636,9 +643,8 @@ def enrich_comments(colls_dfs):  # dict(df) -> df
 
     users = colls_dfs['users']
     comments = colls_dfs['comments']
-    votes = colls_dfs['votes']
 
-    vote_stats = calculate_vote_stats_for_content(votes)
+    vote_stats = calculate_vote_stats_for_content(colls_dfs)
     comments = comments.merge(vote_stats, left_on='_id', right_index=True, how='left')
 
     comments['top_level'] = comments['parentCommentId'].isnull()
@@ -653,18 +659,14 @@ def enrich_users(colls_dfs, date_str):
     """Takes in many dataframes and return one super-enriched users dataframe."""
 
     users = colls_dfs['users']
-    posts = colls_dfs['posts']
-    comments = colls_dfs['comments']
-    views = colls_dfs['views']
-    votes = colls_dfs['votes']
 
     date = datetime.datetime.strptime(date_str, '%Y%m%d')
 
-    post_stats = calc_user_post_stats(posts)
-    comment_stats = calc_user_comment_stats(comments)
-    vote_stats = calculate_vote_stats_for_users(votes)
-    view_stats = calc_user_view_stats(views, posts)
-    recent_activity = calc_user_recent_activity(posts, comments, votes, views, date)
+    post_stats = calc_user_post_stats(colls_dfs)
+    comment_stats = calc_user_comment_stats(colls_dfs)
+    vote_stats = calculate_vote_stats_for_users(colls_dfs)
+    view_stats = calc_user_view_stats(colls_dfs)
+    recent_activity = calc_user_recent_activity(colls_dfs, date)
 
     users = (users
              .merge(post_stats, left_on='_id', right_index=True, how='left')
@@ -679,7 +681,9 @@ def enrich_users(colls_dfs, date_str):
     users['true_earliest'] = users[['earliest_activity', 'createdAt']].min(axis=1)
     users['most_recent_activity'] = users[
         ['most_recent_post', 'most_recent_comment', 'most_recent_vote', 'most_recent_view', 'createdAt']].max(axis=1)
-    users['days_since_active'] = (date - users['most_recent_activity']).dt.days
+    users['days_since_active'] = np.nan
+    users.loc[users['most_recent_activity'].notnull(), 'days_since_active'] = ((date -
+            users.loc[users['most_recent_activity'].notnull(), 'most_recent_activity']).dt.total_seconds()/(86400)).round(1)
 
     non_nan_columns = ['legacyKarma', 'karma', 'afKarma', 'postCount', 'commentCount',
        'frontpagePostCount', 'total_posts', 'total_comments', 'smallUpvote', 'smallDownvote',
@@ -733,18 +737,19 @@ def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
 
     # ##4 METRIC STUFF - PLOTS AND SHEETS
     if metrics:
-        run_metric_pipeline(dfs_enriched, online=True, sheets=True, plots=True)
+        run_metric_pipeline(dfs_enriched, date_str, online=True, sheets=True, plots=True)
 
     # ##5. PLOT GRAPHS TO PLOTLY DASHBOARD
     if plotly:
-        run_plotline(dfs_enriched, start_date='2019-04-01', size=(700, 350), pr='W', ma=4, online=True)
+        start_date = (pd.to_datetime(date_str) - pd.Timedelta(180, unit='d')).strftime('%Y-%m-%d')
+        run_plotline(dfs_enriched, start_date=start_date, size=(700, 350), pr='W', ma=4, online=True)
 
     # ##6. PLOT GRAPHS TO PLOTLY DASHBOARD
     if gsheets:
         create_and_update_all_sheets(dfs_enriched, spreadsheet_name=get_config_field('GSHEETS', 'spreadsheet_name'))
 
     # ##7. LOAD DATA FILES TO POSTGRES DB
-    if postgres and ENV=='ec2':
+    if postgres:
         run_pg_pandas_transfer(dfs_enriched, date_str=date_str)
 
     # ##8. CLEAN UP OLD FILES TO SAVE SPACE
