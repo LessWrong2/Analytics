@@ -93,7 +93,10 @@ def plotly_ts_ma(raw_data=None, resampled_data=None, title='missing', color='yel
     fig = go.Figure(data=data, layout=layout)
 
     if online:
-        py.iplot(fig, filename=title)
+        try:
+            py.iplot(fig, filename=title)
+        except:
+            print('plotly error (probably url)')
     else:
         iplot(fig, filename=title)
 
