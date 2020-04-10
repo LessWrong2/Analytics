@@ -44,3 +44,6 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+*.json
+.idea/

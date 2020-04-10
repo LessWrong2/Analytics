@@ -93,7 +93,10 @@ def plotly_ts_ma(raw_data=None, resampled_data=None, title='missing', color='yel
     fig = go.Figure(data=data, layout=layout)
 
     if online:
-        py.iplot(fig, filename=title)
+        try:
+            py.iplot(fig, filename=title)
+        except:
+            print('plotly error (probably url)')
     else:
         iplot(fig, filename=title)
 
@@ -143,7 +146,7 @@ def run_plotline(dfs, online=False, start_date=None, end_date=None, size=(1000, 
     plotly_uniques(title='Num Logged-In Users', raw_data=dpv[dpv['userId'].isin(valid_users['_id'])], date_col='createdAt', color='black', **plotly_args)
 
     plotly_ts_ma(title='Num Posts with 2+ upvotes', raw_data=valid_posts, date_col='postedAt', color='blue', **plotly_args)
-    plotly_uniques(title='Num Unique Posters', raw_data=valid_posts, date_col='createdAt', color='darkblue', **plotly_args)
+    plotly_uniques(title='Num Unique Posters', raw_data=valid_posts, date_col='postedAt', color='darkblue', **plotly_args)
 
     plotly_ts_ma(title='Num Comments', raw_data=valid_comments, date_col='postedAt', color='green', **plotly_args)
     plotly_uniques(title='Num Unique Commenters', raw_data=valid_comments, date_col='postedAt', color='darkgreen', **plotly_args)
