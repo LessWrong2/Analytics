@@ -134,10 +134,7 @@ def plot_karma_metric(allVotes, start_date, end_date, online=False, pr='D', ma=7
 
     filename = 'Net Karma Metric - {}'.format(pr_dict[pr].capitalize())
     if online:
-        try:
-            py.iplot(fig, filename=filename)
-        except:
-            print('plotly error (probably url')
+        py.iplot(fig, filename=filename)
     else:
         iplot(fig, filename=filename)
 
