@@ -15,6 +15,7 @@ from losttheplotly import run_plotline
 from cellularautomaton import *
 from karmametric import run_metric_pipeline
 from flipthetable import run_pg_pandas_transfer
+from nobacksies import run_tag_pipeline
 from utils import timed, print_and_log, get_config_field, get_valid_users, get_valid_posts, \
     get_valid_comments, get_valid_votes, get_valid_views
 
@@ -723,7 +724,7 @@ def enrich_collections(colls_dfs, date_str):  # dict[str:df] -> dict[str:df]
 
 @timed
 def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsheets=True,
-                      metrics=True, postgres=True, limit=None):
+                      metrics=True, postgres=True, tags=True, limit=None):
     # ##1. LOAD DATA
     if from_file:
         dfs_enriched = load_from_file(date_str)
@@ -752,7 +753,11 @@ def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
     if postgres:
         run_pg_pandas_transfer(dfs_enriched, date_str=date_str)
 
-    # ##8. CLEAN UP OLD FILES TO SAVE SPACE
+    # ##8. RUN TAGS PIPELINE
+    if tags:
+        run_tag_pipeline(dfs_enriched)
+
+    # ##9. CLEAN UP OLD FILES TO SAVE SPACE
     if clean_up:
         clean_up_old_files(days_to_keep=2)
 
@@ -766,5 +771,6 @@ if __name__ == '__main__':
                       gsheets=True,
                       metrics=True,
                       postgres=True,
+                      tags = True,
                       clean_up=True
                       )
