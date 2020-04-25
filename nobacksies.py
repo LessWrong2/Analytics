@@ -1,6 +1,6 @@
 import pandas as pd
 import etlw as et
-from utils import htmlBody2plaintext
+from utils import timed, htmlBody2plaintext
 from cellularautomaton import upload_to_gsheets
 
 
@@ -221,7 +221,7 @@ def format_mega_votes_table(table):
 
     return table[cols].sort_values(['votedAt'], ascending=[False])
 
-
+@timed
 def run_tag_pipeline(dfs, upload=True):
     votes = dfs['votes']
     posts = dfs['posts']
