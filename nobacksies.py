@@ -232,7 +232,7 @@ def run_tag_pipeline(dfs, upload=True):
     tags = et.get_collection('tags', mongo_db)
     tag_rels = et.get_collection('tagrels', mongo_db)
 
-    tag_votes = votes[votes['collectionName'] == 'TagRels']
+    tag_votes = votes[votes['collectionName']=='TagRels']
 
     tags_table = create_tags_table(tag_votes, tags.copy(), tag_rels, posts, mongo_db)
     tags_table_formatted = format_tags_table_for_upload(tags_table)

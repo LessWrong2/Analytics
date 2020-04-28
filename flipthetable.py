@@ -239,6 +239,7 @@ def create_tables(tables, conn=None):
 @timed
 def bulk_upload_to_pg(df, table_name, conn=None):
 
+    df = df.copy()
     df.loc[:,'birth'] = pd.datetime.now()
     df.columns = df.columns.to_series().apply(camel_to_snake)
     df = clean_text(df)
