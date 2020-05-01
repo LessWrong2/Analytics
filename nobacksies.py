@@ -1,6 +1,6 @@
 import pandas as pd
 import etlw as et
-from utils import timed, htmlBody2plaintext
+from utils import timed, htmlBody2plaintext, get_collection, get_mongo_db_object
 from cellularautomaton import upload_to_gsheets
 
 
@@ -244,9 +244,13 @@ def run_tag_pipeline(dfs, upload=True):
     mega_tag_votes_table = get_mega_tag_votes_table(tags, tag_rels, tag_votes, posts, users)
     mega_tag_votes_table_formatted = format_mega_votes_table(mega_tag_votes_table)
     mega_tag_votes_table_formatted['birth'] = pd.datetime.now()
-    _ = upload_to_gsheets(mega_tag_votes_table_formatted,
-                          'Tag Activity Dashboard', 'All Activity',
-                          format_columns=True)
+    _ = upload_to_gsheets(mega_tag_votes_table_formatted, 'Tag Activity Dashboard', 'All Activity', format_columns=True)
+
+    mega_tag_votes_table_formatted['date'] = mega_tag_votes_table_formatted['votedAt'].dt.date
+    _ = upload_to_gsheets(mega_tag_votes_table_formatted
+                          .sort_values(['date', 'is_core_tag', 'tag_name', 'post_title', 'votedAt'],
+                                       ascending=[False, False, True, True, False])
+                          , 'Tag Activity Dashboard', 'All Activity (Daily)', create_sheet=True, format_columns=True)
 
 
 

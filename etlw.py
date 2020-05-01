@@ -17,38 +17,13 @@ from karmametric import run_metric_pipeline
 from flipthetable import run_pg_pandas_transfer
 from nobacksies import run_tag_pipeline
 from utils import timed, print_and_log, get_config_field, get_valid_users, get_valid_posts, \
-    get_valid_comments, get_valid_votes, get_valid_views
+    get_valid_comments, get_valid_votes, get_valid_views, get_collection, get_mongo_db_object
 
 MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
 MONGO_DB_URL = get_config_field('MONGODB', 'prod_db_url')
 BASE_PATH = get_config_field('PATHS','base')
 ENV = get_config_field('ENV', 'env')
 
-
-def get_mongo_db_object():
-    client = MongoClient(MONGO_DB_URL)
-    db = client[MONGO_DB_NAME]
-    return db
-
-
-def get_collection(coll_name, db, projection=None, query_filter=None, limit=None):
-    """
-    Downloads and returns single collection from MongoDB and returns dataframe.
-
-    Optional query filter can be applied (useful for downloading logins post-views from events table.
-    Returns a dataframe.
-    """
-
-    kwargs = {} # necessary because pymongo function doesn't accept limit=None
-    if limit:
-        kwargs.update({'limit':limit})
-
-    print_and_log('{} download started at {}. . .'.format(coll_name, datetime.datetime.today()))
-    coll_list = db[coll_name].find(query_filter, projection=projection, **kwargs)
-    coll_df = pd.DataFrame(list(coll_list))
-    print_and_log('{} download completed at {}!'.format(coll_name, datetime.datetime.today()))
-
-    return coll_df
 
 
 @timed

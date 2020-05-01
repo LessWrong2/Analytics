@@ -3,10 +3,42 @@ import numpy as np
 import datetime
 import pytz
 import logging
+
 from functools import wraps
 import configparser
 from multiprocessing import cpu_count, Pool
 from selectolax.parser import HTMLParser
+
+from pymongo import MongoClient
+
+
+
+def get_mongo_db_object():
+    MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
+    MONGO_DB_URL = get_config_field('MONGODB', 'prod_db_url')
+    client = MongoClient(MONGO_DB_URL)
+    db = client[MONGO_DB_NAME]
+    return db
+
+
+def get_collection(coll_name, db, projection=None, query_filter=None, limit=None):
+    """
+    Downloads and returns single collection from MongoDB and returns dataframe.
+
+    Optional query filter can be applied (useful for downloading logins post-views from events table.
+    Returns a dataframe.
+    """
+
+    kwargs = {} # necessary because pymongo function doesn't accept limit=None
+    if limit:
+        kwargs.update({'limit':limit})
+
+    print_and_log('{} download started at {}. . .'.format(coll_name, datetime.datetime.today()))
+    coll_list = db[coll_name].find(query_filter, projection=projection, **kwargs)
+    coll_df = pd.DataFrame(list(coll_list))
+    print_and_log('{} download completed at {}!'.format(coll_name, datetime.datetime.today()))
+
+    return coll_df
 
 
 def get_config_field(section, field):
