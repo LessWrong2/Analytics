@@ -1,7 +1,7 @@
 import pandas as pd
 from utils import get_config_field
 
-from apiclient.discovery import build
+from googleapiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
 
 
@@ -13,10 +13,10 @@ def initialize_analytics_reporting():
     return analytics
 
 
-def get_report(analytics, view_id, dimensions, metrics,
-               start_date, end_date,
-               page_token=None, page_size=None,
-               ):
+def get_report_internal(analytics, view_id, dimensions, metrics,
+                        start_date, end_date,
+                        page_token=None, page_size=None,
+                        ):
     body = {'reportRequests': [
         {
             'viewId': view_id,
@@ -62,8 +62,8 @@ def convert_to_dataframe(response):
 
 def get_report_recursive(analytics, view_id, dimensions, metrics,
                          start_date, end_date, page_token=None, page_size=None, df_acc=None):
-    df, next_page_token = convert_to_dataframe(get_report(analytics, view_id, dimensions, metrics,
-                                                          start_date, end_date, page_token, page_size))
+    df, next_page_token = convert_to_dataframe(get_report_internal(analytics, view_id, dimensions, metrics,
+                                                                   start_date, end_date, page_token, page_size))
     #     print(next_page_token)
     if next_page_token:
         return get_report_recursive(analytics, view_id, dimensions, metrics,
@@ -73,7 +73,7 @@ def get_report_recursive(analytics, view_id, dimensions, metrics,
         return pd.concat([df_acc, df])
 
 
-def standard_ga_metrics(start_date, end_date):
+def get_standard_ga_metrics(start_date, end_date):
 
     view_id = get_config_field('GA', 'view_id')
     analytics = initialize_analytics_reporting()
@@ -83,5 +83,16 @@ def standard_ga_metrics(start_date, end_date):
 
     df = get_report_recursive(analytics, view_id, DIMENSIONS, METRICS, start_date, end_date, page_size=None)  # next_page_token)
     df['date'] = pd.to_datetime(df['ga:date'])
+
+    return df
+
+def get_report(dims, metrics, start_date, end_date):
+
+    view_id = get_config_field('GA', 'view_id')
+    analytics = initialize_analytics_reporting()
+
+    df = get_report_recursive(analytics, view_id, dims, metrics, start_date, end_date, page_size=None)
+    if 'ga:date' in df.columns:
+        df['date'] = pd.to_datetime(df['ga:date'])
 
     return df
