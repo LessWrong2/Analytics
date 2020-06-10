@@ -147,6 +147,46 @@ def get_collection_cleaned(coll_name, db,
             'properties',
             'createdAt',
             'schema'
+        ],
+        'tags': [
+            '_id',
+            'name',
+            'description',
+            'slug',
+            'deleted',
+            'postCount',
+            'description_latest',
+            'adminOnly',
+            'core',
+            'suggestedAsFilter',
+            'defaultOrder',
+            'promoted'
+        ],
+        'tagrels': [
+            '_id',
+            'tagId',
+            'postId',
+            'userId',
+            'baseScore',
+            'score',
+            'inactive',
+            'voteCount',
+            'afBaseScore',
+            'deleted'
+        ],
+        'sequences': [
+            '_id',
+            'userId',
+            'title',
+            'createdAt',
+            'draft',
+            'isDeleted',
+            'hidden',
+            'schemaVersion',
+            'description',
+            'htmlDescription',
+            'plaintextDescription',
+            'contents'
         ]
     }
 
@@ -156,7 +196,10 @@ def get_collection_cleaned(coll_name, db,
         'votes': clean_raw_votes,
         'views': clean_raw_views,
         'comments': clean_raw_comments,
-        'logins': clean_raw_logins
+        'logins': clean_raw_logins,
+        'tags': clean_raw_tags,
+        'tagrels': clean_raw_tagrels,
+        'sequences': clean_raw_sequences
     }
 
     query_filters = {'logins': {'name': 'login'}, 'views': {'name': 'post-view'}}
@@ -182,23 +225,11 @@ def get_collection_cleaned(coll_name, db,
 
     cleaned_collection_df = cleaning_functions[coll_name](raw_collection_df)
 
-    # if io_config is not None:
-    #
-    #     if functions_and_filters[coll_name][1] is not None:
-    #         if functions_and_filters[coll_name][1]['name'] == 'post-view':
-    #             coll_name = 'views'  # haven't figured out a more elegant way to do this
-    #
-    #     write_collection(
-    #         coll_name=coll_name,
-    #         coll_df=df,
-    #         io_config=io_config
-    #     )
-
     return cleaned_collection_df
 
 
 @timed
-def get_collections_cleaned(coll_names=('comments', 'views', 'votes', 'posts', 'users'), limit=None):
+def get_collections_cleaned(coll_names=('comments', 'views', 'votes', 'posts', 'users', 'tags', 'tagrels', 'sequences'), limit=None):
     """
     For all collections in argument, downloads and cleans them.
     Returns a dict of dataframes.
@@ -403,6 +434,33 @@ def clean_raw_logins(logins_df):
     logins_parsed.loc[:, 'type'] = logins_parsed['properties'].str['type']
 
     return logins_parsed
+
+
+def clean_raw_tags(tags_df):
+
+    tags_parsed = tags_df
+
+    tags_parsed.loc[:, 'defaultOrder'] = tags_parsed.loc[:,'defaultOrder'].fillna(0)
+    for col in ['deleted', 'adminOnly', 'core', 'suggestedAsFilter', 'promoted']:
+        tags_parsed.loc[:, col] = tags_parsed.loc[:, col].fillna(False).astype(bool)
+
+    return tags_parsed
+
+
+def clean_raw_tagrels(tagrels_df):
+
+    tagrels_parsed = tagrels_df
+    for col in ['deleted', 'inactive']:
+        tagrels_parsed.loc[:, col] = tagrels_parsed.loc[:, col].fillna(False).astype(bool)
+
+    return tagrels_parsed
+
+def clean_raw_sequences(sequences_df):
+    sequences_parsed = sequences_df
+    for col in ['draft', 'isDeleted', 'hidden']:
+        sequences_parsed.loc[:, col] = sequences_parsed.loc[:, col].fillna(False).astype(bool)
+
+    return sequences_parsed
 
 
 def calculate_vote_stats_for_content(colls_dfs):
@@ -677,8 +735,33 @@ def enrich_users(colls_dfs, date_str):
     return users
 
 
+def enrich_tagrels(colls_dfs):
+    posts = colls_dfs['posts']
+    users = colls_dfs['users']
+    tags = colls_dfs['tags']
+    tagrels = colls_dfs['tagrels']
+
+    tagrels = (tagrels
+               .merge(tags.set_index('_id')[['name']], left_on='tagId', right_index=True)
+               .merge(posts.set_index('_id')[['title', 'userId', 'baseScore']], left_on='postId', right_index=True, suffixes=['', '_post'], how='left')
+               .merge(users.set_index('_id')[['displayName']], left_on='userId_post', right_index=True)
+               .rename({'displayName': 'author'}, axis=1)
+               )
+
+
+    tagrels.loc[:,'voteCount'] = tagrels.loc[:,'voteCount'].fillna(0).astype(int)
+    tagrels.loc[:,'afBaseScore'] = tagrels.loc[:,'afBaseScore'].fillna(0).astype(int)
+    tagrels.loc[:,'baseScore_post'] = tagrels.loc[:,'baseScore_post'].fillna(0).astype(int)
+
+
+    return tagrels
+
+
 @timed
-def enrich_collections(colls_dfs, date_str):  # dict[str:df] -> dict[str:df]
+def enrich_collections(colls_dfs,
+                       date_str,
+                      coll_names=('comments', 'views', 'votes', 'posts', 'users', 'tags', 'tagrels', 'sequences'),
+                       ):  # (dict[str:df], str, list[str]) -> dict[str:df]
     """Single function for collectively enriching all collection dataframes.
 
     Input: dictionary of basic-parsed collection dataframes.
@@ -686,13 +769,24 @@ def enrich_collections(colls_dfs, date_str):  # dict[str:df] -> dict[str:df]
 
     """
 
-    enriched_dfs = {
-        'users': enrich_users(colls_dfs, date_str=date_str),
-        'posts': enrich_posts(colls_dfs),
-        'comments': enrich_comments(colls_dfs),
-        'votes': colls_dfs['votes'],
-        'views': colls_dfs['views']
-    }
+    enriched_dfs = {}
+
+    if 'users' in coll_names:
+        enriched_dfs['users'] = enrich_users(colls_dfs, date_str=date_str)
+    if 'posts' in coll_names:
+        enriched_dfs['posts'] = enrich_posts(colls_dfs)
+    if 'comments' in coll_names:
+        enriched_dfs['comments'] = enrich_comments(colls_dfs)
+    if 'votes' in coll_names:
+        enriched_dfs['votes'] = colls_dfs['votes']
+    if 'views' in coll_names:
+        enriched_dfs['views'] = colls_dfs['views']
+    if 'tags' in coll_names:
+        enriched_dfs['tags'] = colls_dfs['tags']
+    if 'tagrels' in coll_names:
+        enriched_dfs['tagrels'] = enrich_tagrels(colls_dfs)
+    if 'sequences' in coll_names:
+        enriched_dfs['sequences'] = colls_dfs['sequences']
 
     return enriched_dfs
 
@@ -726,7 +820,7 @@ def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
 
     # ##7. LOAD DATA FILES TO POSTGRES DB
     if postgres:
-        run_pg_pandas_transfer(dfs_enriched, date_str=date_str)
+        run_pg_pandas_transfer(dfs_enriched)
 
     # ##8. RUN TAGS PIPELINE
     if tags:

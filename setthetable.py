@@ -166,5 +166,58 @@ table_creation_commands = {
     is_desktop          boolean,
     is_bot              boolean,
     birth               timestamp
+);""",
+    'tags': """CREATE TABLE tags
+(
+    _id               varchar(64) PRIMARY KEY,
+    name              text,
+    slug              text,
+    deleted           boolean,
+    post_count         smallint,
+    admin_only         boolean,
+    core              boolean,
+    suggested_as_filter boolean,
+    default_order      numeric,
+    promoted          boolean,
+    birth               timestamp
+);""",
+    'tagrels': """CREATE TABLE tagrels
+(
+    _id               varchar(64) PRIMARY KEY,
+    tag_id               varchar(64), 
+    post_id               varchar(64),
+    user_id               varchar(64),
+    base_score      smallint,
+    score           smallint,
+    inactive        boolean,
+    vote_count      smallint,
+    af_base_score   smallint,
+    deleted         boolean,
+    name            text,
+    title           text,
+    author          text,
+    base_score_post    smallint,       
+    birth               timestamp
+);""",
+    'sequences': """CREATE TABLE sequences
+(
+    _id               varchar(64) PRIMARY KEY,
+    user_id           varchar(64),
+    title             text,
+    created_at         timestamp,
+    draft             boolean,
+    is_deleted         boolean,
+    hidden             boolean,
+    schema_version     smallint,
+    plaintext_description text,
+    birth       timestamp
+);""",
+    'urls': """CREATE TABLE urls_resolved
+(
+    url              text,
+    title            text,
+    document_id  varchar(64),
+    type        varchar(16),
+    birth       timestamp
 );"""
 }
