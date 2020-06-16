@@ -219,5 +219,56 @@ table_creation_commands = {
     document_id  varchar(64),
     type        varchar(16),
     birth       timestamp
+);""",
+    'ga_traffic': """CREATE TABLE ga_traffic
+(
+    date                    timestamp,
+    ga_users                int,
+    ga_sessions             int,
+    ga_pageviews            int,
+    ga_unique_pageviews     int,
+    ga_pageviews_per_session numeric,
+    birth                   timestamp
+);""",
+    'ga_source': """CREATE TABLE ga_source
+(
+    date                    timestamp,
+    source_agg              text,
+    ga_source               text,
+    ga_users                int,
+    ga_sessions             int,
+    birth                   timestamp
+);""",
+    'ga_referrer': """CREATE TABLE ga_referrer
+(
+    date                    timestamp,
+    referrer_agg            text,
+    ga_full_referrer        text,
+    ga_users                int,
+    ga_sessions             int,
+    birth                   timestamp
+);""",
+    'ga_devices': """CREATE TABLE ga_devices
+(
+    date                timestamp,
+    ga_device_category  varchar(32),
+    ga_users            int,
+    ga_sessions         int,
+    ga_pageviews        int,
+    ga_unique_pageviews  int,
+    birth               timestamp
+);""",
+    'ga_pages': """CREATE TABLE ga_pages
+(
+    date                    timestamp,
+    page_agg                text,
+    ga_page_path            text,
+    ga_users                int,
+    ga_sessions             int,
+    ga_pageviews            int,
+    ga_unique_pageviews      int,
+    ga_avg_time_on_page     numeric,
+    ga_avg_page_load_time   numeric,
+    birth                   timestamp
 );"""
 }
