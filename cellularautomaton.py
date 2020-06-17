@@ -41,6 +41,7 @@ def create_and_update_user_sheet(dfu, spreadsheet, limit=None):
 
     data['birth'] = pd.datetime.now()
     #     data['most_recent_activity'] = data['most_recent_activity'].dt.date
+    data = data.sort_values('most_recent_activity', ascending=False).head(49990)
 
     user_cols = [
         'birth',
