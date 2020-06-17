@@ -174,7 +174,7 @@ def get_page_metrics(start_date=None, end_date=None, days=7):
         agg_page(r'/community', '/community')
         agg_page(r'/groups/', '/groups/*')
         agg_page(r'/tag/', '/tag/*')
-        agg_page(r'/coronavirus-link-database/', '/coronavirus-link-database')
+        agg_page(r'/coronavirus-link-database', '/coronavirus-link-database')
 
         return df[['date', 'page_agg', 'ga:pagePath',
                    'ga:users', 'ga:sessions', 'ga:pageviews', 'ga:uniquePageviews',
