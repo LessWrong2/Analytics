@@ -195,6 +195,7 @@ table_creation_commands = {
     deleted         boolean,
     name            text,
     title           text,
+    user_id_post    varchar(64),
     author          text,
     base_score_post    smallint,       
     birth               timestamp
@@ -212,12 +213,14 @@ table_creation_commands = {
     plaintext_description text,
     birth       timestamp
 );""",
-    'urls': """CREATE TABLE urls_resolved
+    'urls': """CREATE TABLE urls
 (
     url              text,
     title            text,
+    author           text,
     document_id  varchar(64),
     type        varchar(16),
+    url_hash    varchar(32) PRIMARY KEY,
     birth       timestamp
 );""",
     'ga_traffic': """CREATE TABLE ga_traffic
