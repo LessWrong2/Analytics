@@ -17,7 +17,7 @@ def camel_to_snake(name):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
 
-def clean_text(df):
+def clean_dataframe_text(df):
 
     def replace_strings(col, pat, repl):
         df.loc[:, col] = df.loc[:, col].str.replace(pat, repl)
@@ -276,12 +276,13 @@ def create_tables(tables, conn=None):
 
 
 @timed
-def bulk_upload_to_pg(df, table_name, conn=None):
+def bulk_upload_to_pg(df, table_name, conn=None, clean_text=True):
 
     df = df.copy()
     df.loc[:,'birth'] = pd.datetime.now()
     df.columns = df.columns.to_series().apply(camel_to_snake)
-    df = clean_text(df)
+    if clean_text:
+        df = clean_dataframe_text(df)
 
     sep = '\t'
 
@@ -342,6 +343,15 @@ def test_db_contents():
         _ = [display(pd.read_sql("SELECT * FROM {} LIMIT 3".format(coll), conn)) for coll in tables]
     engine.dispose()
 
+
+def get_db_freshness():
+    tables = ['users', 'posts', 'comments', 'votes', 'views', 'tags', 'tagrels', 'sequences', 'urls']
+    engine = get_pg_engine()
+    with engine.begin() as conn:
+        tables_eariest_birth = {table: conn.execute("SELECT MIN(birth) FROM {}".format(table)).first()[0] for table in tables}
+    engine.dispose()
+
+    return tables_eariest_birth
 
 
 
