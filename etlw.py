@@ -284,7 +284,7 @@ def clean_up_old_files(days_to_keep=1):
     return [shutil.rmtree(folder) for folder in date_folders[days_to_keep:]]
 
 @timed
-def load_from_file(date_str, coll_names=('votes', 'views', 'comments', 'posts', 'users')):
+def load_from_file(date_str, coll_names=('votes', 'views', 'comments', 'posts', 'users', 'tags', 'tagrels', 'sequences')):
     """Loads database collections from csvs to dataframes, ensures datetimes load correctly."""
 
     @timed
@@ -315,7 +315,10 @@ def load_from_file(date_str, coll_names=('votes', 'views', 'comments', 'posts', 
         'posts': None,
         'comments': None,
         'votes': {'collectionName': 'category', 'voteType': 'category', 'afPower': 'int8', 'power': 'int8'},
-        'views': None
+        'views': None,
+        'sequences': None,
+        'tags': None,
+        'tagrels': None
     }
 
     print_and_log("Files to be loaded:")
