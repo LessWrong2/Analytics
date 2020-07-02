@@ -174,7 +174,7 @@ def get_page_metrics(start_date=None, end_date=None, days=7):
         agg_page(r'/community', '/community')
         agg_page(r'/groups/', '/groups/*')
         agg_page(r'/tag/', '/tag/*')
-        agg_page(r'/coronavirus-link-database/', '/coronavirus-link-database')
+        agg_page(r'/coronavirus-link-database', '/coronavirus-link-database')
 
         return df[['date', 'page_agg', 'ga:pagePath',
                    'ga:users', 'ga:sessions', 'ga:pageviews', 'ga:uniquePageviews',
@@ -188,7 +188,7 @@ def get_all_metrics():
     ga_metrics['source'] = get_source_metrics(days=180)
     ga_metrics['devices'] = get_device_metrics(days=180)
     ga_metrics['referrer'] = get_referrer_metrics(days=30)
-    ga_metrics['pages'] = get_page_metrics(days=14)
+    ga_metrics['pages'] = get_page_metrics(days=30)
 
     return ga_metrics
 
@@ -197,18 +197,6 @@ def run_ga_pipeline():
 
     ##Get Data
     ga_metrics = get_all_metrics()
-
-    ## GSheets Upload
-    def ga_gsheets_upload(df, name):
-        upload_to_gsheets(df, 'LW Automatically Updating Spreadsheets', 'GA: {}'.format(name))
-
-    ga_metrics_gsheets = ga_metrics.copy()
-    ga_metrics_gsheets['pages']['ga:pagePath'] = '=HYPERLINK("www.lesswrong.com' + \
-                                                 ga_metrics_gsheets['pages']['ga:pagePath'] + '", "' + \
-                                                ga_metrics_gsheets['pages']['ga:pagePath'] + '")'
-
-    [ga_gsheets_upload(df, name) for name, df in ga_metrics.items()]
-
 
     ## Postgres Upload
     ga_metrics_pg = ga_metrics.copy()
@@ -225,7 +213,7 @@ def run_ga_pipeline():
             truncate_or_drop_tables(['ga_' + name for name in ga_metrics.keys()], conn=conn, drop=False)
 
             print_and_log('loading tables into postgres db')
-            [bulk_upload_to_pg(df, table_name='ga_' + name, conn=conn) for name, df in ga_metrics.items()]
+            [bulk_upload_to_pg(df, table_name='ga_' + name, conn=conn) for name, df in ga_metrics_pg.items()]
 
             print_and_log('transaction successful!')
 
@@ -233,5 +221,17 @@ def run_ga_pipeline():
         print_and_log('transfer failed')
     finally:
         engine.dispose()
+
+
+    ## GSheets Upload
+    def ga_gsheets_upload(df, name):
+        upload_to_gsheets(df, 'LW Automatically Updating Spreadsheets', 'GA: {}'.format(name))
+
+    ga_metrics_gsheets = ga_metrics.copy()
+    ga_metrics_gsheets['pages']['ga:pagePath'] = '=HYPERLINK("www.lesswrong.com' + \
+                                                 ga_metrics_gsheets['pages']['ga:pagePath'] + '", "' + \
+                                                 ga_metrics_gsheets['pages']['ga:pagePath'] + '")'
+
+    [ga_gsheets_upload(df, name) for name, df in ga_metrics.items()]
 
 
