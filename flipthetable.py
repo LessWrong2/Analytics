@@ -24,7 +24,7 @@ def clean_dataframe_text(df):
 
     for col in df.columns:
         if pd.api.types.is_string_dtype(df[col]):
-            _ = [replace_strings(col, pat, repl) for pat, repl in [('\\', ''), ('\t', '  '), ('\n', '\\n')]]
+            _ = [replace_strings(col, pat, repl) for pat, repl in [('\\', ''), ('\t', '  '), ('\n', '\\n'), ('\r', '\\r')]]
 
     return df
 

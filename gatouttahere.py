@@ -188,7 +188,7 @@ def get_all_metrics():
     ga_metrics['source'] = get_source_metrics(days=180)
     ga_metrics['devices'] = get_device_metrics(days=180)
     ga_metrics['referrer'] = get_referrer_metrics(days=30)
-    ga_metrics['pages'] = get_page_metrics(days=14)
+    ga_metrics['pages'] = get_page_metrics(days=30)
 
     return ga_metrics
 

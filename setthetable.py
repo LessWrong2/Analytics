@@ -216,10 +216,10 @@ table_creation_commands = {
     'urls': """CREATE TABLE urls
 (
     url              text,
+    type        varchar(16),
     title            text,
     author           text,
     document_id  varchar(64),
-    type        varchar(16),
     url_hash    varchar(32) PRIMARY KEY,
     birth       timestamp
 );""",
