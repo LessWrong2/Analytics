@@ -216,7 +216,7 @@ table_creation_commands = {
     'urls': """CREATE TABLE urls
 (
     url              text,
-    type        varchar(16),
+    type        varchar(32),
     title            text,
     author           text,
     document_id  varchar(64),
