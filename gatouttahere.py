@@ -160,25 +160,6 @@ def get_page_metrics(start_date=None, end_date=None, days=7):
 
         df['page_agg'] = ''
 
-        # agg_page = lambda pattern, replacement: agg(df, 'ga:pagePath', 'page_agg', pattern, replacement)
-        # agg_page(r'/s/.+', '/sequence/*') # is relying on next line, TO-DO, fix regex
-        # agg_page(r'/posts/|/s/.+/p/.+|\/lw/', '/posts/*')
-        # agg_page('/rationality/', '/rationality/*')
-        # agg_page('/codex/', '/codex/*')
-        # agg_page('/hpmor/', '/hpmor/*')
-        # agg_page('/about', '/about')
-        # agg_page(r'/users/', '/users/*')
-        # agg_page(r'/search', '/search')
-        # agg_page(r'/verify-email/', '/verify-email/*')
-        # agg_page(r'/editPost', '/editPost')
-        # agg_page(r'/allPosts', '/allPosts')
-        # agg_page(r'/inbox/', '/inbox/')
-        # agg_page(r'/events/', '/events/*')
-        # agg_page(r'/community', '/community')
-        # agg_page(r'/groups/', '/groups/*')
-        # agg_page(r'/tag/', '/tag/*')
-        # agg_page(r'/coronavirus-link-database', '/coronavirus-link-database')
-
         return df[['date', 'page_agg', 'ga:pagePath',
                    'ga:users', 'ga:sessions', 'ga:pageviews', 'ga:uniquePageviews',
                    'ga:avgTimeOnPage', 'ga:avgPageLoadTime']]
