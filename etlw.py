@@ -17,6 +17,7 @@ from karmametric import run_metric_pipeline
 from flipthetable import run_pg_pandas_transfer
 from nobacksies import run_tag_pipeline
 from gatouttahere import run_ga_pipeline
+from url_grey import run_url_table_update
 from utils import timed, print_and_log, get_config_field, get_valid_users, get_valid_posts, \
     get_valid_comments, get_valid_votes, get_valid_views, get_collection, get_mongo_db_object
 
@@ -797,7 +798,7 @@ def enrich_collections(colls_dfs,
 
 @timed
 def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsheets=True,
-                      metrics=True, postgres=True, tags=True, ga=True, limit=None):
+                      metrics=True, postgres=True, tags=True, ga=True, urls=True, limit=None):
     # ##1. LOAD DATA
     if from_file:
         dfs_enriched = load_from_file(date_str)
@@ -834,7 +835,11 @@ def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
     if ga:
         run_ga_pipeline()
 
-    # ##10. CLEAN UP OLD FILES TO SAVE SPACE
+    # ##10. URLS TABLE UPDATE
+    if urls:
+        run_url_table_update(dfs_enriched)
+
+    # ##1. CLEAN UP OLD FILES TO SAVE SPACE
     if clean_up:
         clean_up_old_files(days_to_keep=2)
 
