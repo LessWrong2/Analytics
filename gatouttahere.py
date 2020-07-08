@@ -1,3 +1,4 @@
+import copy
 import pandas as pd
 from utils import get_config_field, timed, print_and_log
 from cellularautomaton import upload_to_gsheets
@@ -157,24 +158,26 @@ def get_page_metrics(start_date=None, end_date=None, days=7):
         metrics = ['ga:users', 'ga:sessions', 'ga:pageviews', 'ga:uniquePageviews', 'ga:avgTimeOnPage', 'ga:avgPageLoadTime']
         df = get_report(dims, metrics, start_date, end_date, days)  # next_page_token)
 
-        agg_page = lambda pattern, replacement: agg(df, 'ga:pagePath', 'page_agg', pattern, replacement)
-        agg_page(r'/s/.+', '/sequence/*') # is relying on next line, TO-DO, fix regex
-        agg_page(r'/posts/|/s/.+/p/.+|\/lw/', '/posts/*')
-        agg_page('/rationality/', '/rationality/*')
-        agg_page('/codex/', '/codex/*')
-        agg_page('/hpmor/', '/hpmor/*')
-        agg_page('/about', '/about')
-        agg_page(r'/users/', '/users/*')
-        agg_page(r'/search', '/search')
-        agg_page(r'/verify-email/', '/verify-email/*')
-        agg_page(r'/editPost', '/editPost')
-        agg_page(r'/allPosts', '/allPosts')
-        agg_page(r'/inbox/', '/inbox/')
-        agg_page(r'/events/', '/events/*')
-        agg_page(r'/community', '/community')
-        agg_page(r'/groups/', '/groups/*')
-        agg_page(r'/tag/', '/tag/*')
-        agg_page(r'/coronavirus-link-database', '/coronavirus-link-database')
+        df['page_agg'] = ''
+
+        # agg_page = lambda pattern, replacement: agg(df, 'ga:pagePath', 'page_agg', pattern, replacement)
+        # agg_page(r'/s/.+', '/sequence/*') # is relying on next line, TO-DO, fix regex
+        # agg_page(r'/posts/|/s/.+/p/.+|\/lw/', '/posts/*')
+        # agg_page('/rationality/', '/rationality/*')
+        # agg_page('/codex/', '/codex/*')
+        # agg_page('/hpmor/', '/hpmor/*')
+        # agg_page('/about', '/about')
+        # agg_page(r'/users/', '/users/*')
+        # agg_page(r'/search', '/search')
+        # agg_page(r'/verify-email/', '/verify-email/*')
+        # agg_page(r'/editPost', '/editPost')
+        # agg_page(r'/allPosts', '/allPosts')
+        # agg_page(r'/inbox/', '/inbox/')
+        # agg_page(r'/events/', '/events/*')
+        # agg_page(r'/community', '/community')
+        # agg_page(r'/groups/', '/groups/*')
+        # agg_page(r'/tag/', '/tag/*')
+        # agg_page(r'/coronavirus-link-database', '/coronavirus-link-database')
 
         return df[['date', 'page_agg', 'ga:pagePath',
                    'ga:users', 'ga:sessions', 'ga:pageviews', 'ga:uniquePageviews',
@@ -186,8 +189,8 @@ def get_all_metrics():
     ga_metrics['traffic'] = get_traffic_metrics(start_date='2017-01-01',
                                                 end_date=pd.datetime.today().strftime('%Y-%m-%d'), days=None)
     ga_metrics['source'] = get_source_metrics(days=180)
-    ga_metrics['devices'] = get_device_metrics(days=180)
-    ga_metrics['referrer'] = get_referrer_metrics(days=30)
+    ga_metrics['devices'] = get_device_metrics(days=90)
+    ga_metrics['referrer'] = get_referrer_metrics(days=14)
     ga_metrics['pages'] = get_page_metrics(days=30)
 
     return ga_metrics
@@ -199,7 +202,7 @@ def run_ga_pipeline():
     ga_metrics = get_all_metrics()
 
     ## Postgres Upload
-    ga_metrics_pg = ga_metrics.copy()
+    ga_metrics_pg = copy.deepcopy(ga_metrics)
 
     for df in ga_metrics_pg.values():
         df.columns = [col.replace(':', '_') for col in df.columns]
@@ -227,7 +230,7 @@ def run_ga_pipeline():
     def ga_gsheets_upload(df, name):
         upload_to_gsheets(df, 'LW Automatically Updating Spreadsheets', 'GA: {}'.format(name))
 
-    ga_metrics_gsheets = ga_metrics.copy()
+    ga_metrics_gsheets = ga_metrics
     ga_metrics_gsheets['pages']['ga:pagePath'] = '=HYPERLINK("www.lesswrong.com' + \
                                                  ga_metrics_gsheets['pages']['ga:pagePath'] + '", "' + \
                                                  ga_metrics_gsheets['pages']['ga:pagePath'] + '")'
