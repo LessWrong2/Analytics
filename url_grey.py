@@ -10,34 +10,17 @@ import etlw as et
 urlRecord = namedtuple('urlRecord', ['url', 'documentType', 'title', 'documentId', 'author'])
 urlRecord.__new__.__defaults__ = (None,) * 5
 urlRecord()
-#
-# agg_page = lambda pattern, replacement: agg(df, 'ga:pagePath', 'page_agg', pattern, replacement)
-# agg_page(r'/s/.+', '/sequence/*')  # is relying on next line, TO-DO, fix regex
-# agg_page(r'/posts/|/s/.+/p/.+|\/lw/', '/posts/*')
-# agg_page('/rationality/', '/rationality/*')
-# agg_page('/codex/', '/codex/*')
-# agg_page('/hpmor/', '/hpmor/*')
-# agg_page('/about', '/about')
-# agg_page(r'/users/', '/users/*')
-# agg_page(r'/search', '/search')
-# agg_page(r'/verify-email/', '/verify-email/*')
-# agg_page(r'/editPost', '/editPost')
-# agg_page(r'/allPosts', '/allPosts')
-# agg_page(r'/inbox/', '/inbox/')
-# agg_page(r'/events/', '/events/*')
-# agg_page(r'/community', '/community')
-# agg_page(r'/groups/', '/groups/*')
-# agg_page(r'/tag/', '/tag/*')
-# agg_page(r'/coronavirus-link-database', '/coronavirus-link-database')
-
-
 
 
 def get_urls(start_date='2020-01-01'):
     query = """SELECT DISTINCT url FROM
-                (SELECT DISTINCT path AS url FROM lessraw_small WHERE timestamp > '{0}'
+                (SELECT DISTINCT path AS url FROM lessraw_small WHERE timestamp >= '{0}'
                 UNION
-                SELECT DISTINCT url_to AS url FROM lessraw_small WHERE timestamp > '{0}') sub""".format(start_date)
+                SELECT DISTINCT url_to AS url FROM lessraw_small WHERE timestamp >= '{0}'
+                UNION
+                SELECT DISTINCT ga_page_path AS url FROM ga_pages WHERE date >= '{0}'
+                ) sub
+                WHERE url IS NOT NULL""".format(start_date)
 
     engine = get_pg_engine()
     with engine.begin() as conn:
@@ -51,6 +34,13 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
     def pattern_search(pattern):
         return re.search(pattern, url, re.IGNORECASE)
 
+    def simple_record_pattern(pattern, document_type=None):
+        if not document_type:
+            document_type =pattern
+        if pattern_search(pattern):
+            return urlRecord(url=url, documentType=document_type)
+        else:
+            return False
 
 
     posts = dfs['posts']
@@ -59,7 +49,7 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
     tags = dfs['tags']
 
     ## Frontpage
-    homepage_pattern = r'(^/$)'
+    homepage_pattern = r'(^/$)|(^/\?)'
     if pattern_search(homepage_pattern): #pattern_search(homepage_pattern):
         return urlRecord(
             url=url,
@@ -148,6 +138,7 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
         else:
             return ''
 
+    ## Users
     user_pattern = r'((?<=\/user/)|(?<=\/users/))(\w+)'
     matches = pattern_search(user_pattern)
     if matches:
@@ -187,32 +178,23 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
                 documentType='/tag/'
             )
 
-    ## All Posts
-    all_posts_pattern = r'/allPosts'
-    if pattern_search(all_posts_pattern):
-        return urlRecord(
-            url=url,
-            documentType='/allPosts'
-        )
-
-    ## About
-    about_pattern = r'/about'
-    if pattern_search(about_pattern):
-        return urlRecord(
-            url=url,
-            documentType='/about'
-        )
-    ## Users
+    for pattern in [r'/allPosts', r'/about', r'/events', r'/inbox', r'/search', r'/verify-email', r'/editPost',
+                    r'/community', r'/groups', r'/coronavirus-link-database', '/shortform', '/tags'
+                    r'/codex', 'r/rationality'
+                    ]:
+        record = simple_record_pattern(pattern)
+        if record:
+            return record
 
 
     ## Doesn't match any
     return urlRecord(url)
 
 
-def resolve_urls(df, dfs):
+def resolve_urls(df, dfs, url_col='url'):
 
-    unique_urls = df.dropna().drop_duplicates()
-    urls_resolved = unique_urls['url'].astype(str).apply(lambda x: pd.Series(data=resolve_url_uncurried(x, dfs)))
+    unique_urls = df.dropna().drop_duplicates(subset=url_col)
+    urls_resolved = unique_urls[url_col].astype(str).apply(lambda x: pd.Series(data=resolve_url_uncurried(x, dfs)))
 
     urls_resolved.columns = ['url', 'type', 'title', 'documentId', 'author']
     urls_resolved = urls_resolved.fillna(np.nan)
@@ -222,7 +204,7 @@ def resolve_urls(df, dfs):
 
 
 @timed
-def get_resolved_urls(dfs, sample=None, start_date=None):
+def get_resolved_urls(dfs, sample=None, start_date=None, url_col='url'):
 
     urls = get_urls(start_date)
 
@@ -235,7 +217,7 @@ def get_resolved_urls(dfs, sample=None, start_date=None):
 
     # urls_resolved = parallelize_dataframe(urls, resolve_urls_curried, 2)
     urls_resolved = resolve_urls(urls, dfs)
-    urls_resolved['url_hash'] = urls_resolved['url'].apply(lambda x: md5(x.encode()).hexdigest())
+    urls_resolved['url_hash'] = urls_resolved[url_col].apply(lambda x: md5(x.encode()).hexdigest())
 
     cols = ['url', 'type', 'title', 'author', 'document_id', 'url_hash']
     urls_resolved.columns = urls_resolved.columns.to_series().apply(camel_to_snake)
@@ -258,8 +240,7 @@ def run_url_table_update(dfs, override_start=None):
             start_date = urls_existing['birth'].max()
 
         # Download & Resolve new URLs since ~birth
-        urls_resolved_new = get_resolved_urls(start_date=(pd.to_datetime(start_date) - pd.Timedelta('1 days'))
-                                              .strftime('%Y-%m-%d'))
+        urls_resolved_new = get_resolved_urls(dfs, start_date=(pd.to_datetime(start_date) - pd.Timedelta('1 days')).strftime('%Y-%m-%d'))
         urls_resolved_new['birth'] = pd.datetime.now()
 
         # Append new urls to existing table, drop duplicates
@@ -270,18 +251,6 @@ def run_url_table_update(dfs, override_start=None):
         bulk_upload_to_pg(urls_updated, table_name='urls', conn=conn)
 
     engine.dispose()
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
