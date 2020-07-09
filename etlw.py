@@ -151,6 +151,7 @@ def get_collection_cleaned(coll_name, db,
             'schema'
         ],
         'tags': [
+            'createdAt',
             '_id',
             'name',
             'description',
@@ -165,6 +166,7 @@ def get_collection_cleaned(coll_name, db,
             'promoted'
         ],
         'tagrels': [
+            'createdAt'
             '_id',
             'tagId',
             'postId',

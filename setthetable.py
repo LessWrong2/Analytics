@@ -169,6 +169,7 @@ table_creation_commands = {
 );""",
     'tags': """CREATE TABLE tags
 (
+    created_at         timestamp,
     _id               varchar(64) PRIMARY KEY,
     name              text,
     slug              text,
@@ -183,6 +184,7 @@ table_creation_commands = {
 );""",
     'tagrels': """CREATE TABLE tagrels
 (
+    created_at         timestamp,
     _id               varchar(64) PRIMARY KEY,
     tag_id               varchar(64), 
     post_id               varchar(64),

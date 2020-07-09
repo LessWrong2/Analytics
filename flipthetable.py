@@ -180,6 +180,7 @@ def prepare_views(dpv):
 
 def prepare_tags(tags):
     tag_sql_cols = [
+        'createdAt',
         '_id',
         'name',
         'slug',
