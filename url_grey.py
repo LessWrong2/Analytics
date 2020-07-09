@@ -4,8 +4,7 @@ from collections import namedtuple
 from hashlib import md5
 import re
 from flipthetable import get_pg_engine, bulk_upload_to_pg, truncate_or_drop_tables, camel_to_snake
-from utils import parallelize_dataframe, get_collection, get_mongo_db_object, timed
-import etlw as et
+from utils import timed
 
 urlRecord = namedtuple('urlRecord', ['url', 'documentType', 'title', 'documentId', 'author'])
 urlRecord.__new__.__defaults__ = (None,) * 5
