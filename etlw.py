@@ -855,6 +855,8 @@ if __name__ == '__main__':
                       gsheets=True,
                       metrics=True,
                       postgres=True,
-                      tags = True,
+                      tags=True,
+                      ga=True,
+                      urls=True,
                       clean_up=True
                       )

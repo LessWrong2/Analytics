@@ -44,8 +44,8 @@ def create_tags_table(votes, tags, tag_rels, posts, mongo_db_object):
     tags_enriched['description'] = htmlBody2plaintext(tags_enriched['description'].str['html'])
     tags_enriched['description_last_edited'] = tags_enriched['description'].str['editedAt']
 
-    tag_index_body = list(mongo_db_object['posts'].find({'_id': 'DHJBEsi4XJDw2fRFq'}))[0]['contents']['html']
-    tags_enriched['in_tag_index'] = tags_enriched['slug'].apply(lambda x: ('lesswrong.com/tag/' + x) in tag_index_body)
+    tag_portal_body = list(mongo_db_object['tags'].find({'_id': 'y7dNF8jcJLgJbb8TF'}))[0]['description']['html']
+    tags_enriched['in_tag_index'] = tags_enriched['slug'].apply(lambda x: ('wrong.com/tag/' + x) in tag_portal_body)
 
     return tags_enriched
 
