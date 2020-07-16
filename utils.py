@@ -61,8 +61,8 @@ def timed(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        def get_local_time(tz='US/Pacific'):
-            return datetime.datetime.now(pytz.timezone('US/Pacific'))
+        def get_local_time(tz='UTC'):
+            return datetime.datetime.now(pytz.timezone(tz))
 
         start = get_local_time()
         print_and_log('{} started at {}'.format(func.__name__, start.strftime('%Y-%m-%d %H:%M:%S')))
