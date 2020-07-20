@@ -11,12 +11,12 @@ import os
 import shutil
 import configparser
 
-from losttheplotly import run_plotline
+from plotly_ops import run_plotline
 from cellularautomaton import *
 from karmametric import run_metric_pipeline
 from flipthetable import run_pg_pandas_transfer
 from nobacksies import run_tag_pipeline
-from gatouttahere import run_ga_pipeline
+from google_analytics_ops import run_ga_pipeline
 from url_grey import run_url_table_update
 from utils import timed, print_and_log, get_config_field, get_valid_users, get_valid_posts, \
     get_valid_comments, get_valid_votes, get_valid_views, get_collection, get_mongo_db_object
@@ -293,14 +293,19 @@ def load_from_file(date_str, coll_names=('votes', 'views', 'comments', 'posts', 
     @timed
     def read_csv(coll_name):
 
+        if coll_name in read_dtypes_arg:
+            dtypes = read_dtypes_arg[coll_name]
+        else:
+            dtypes = None
+
         print_and_log('Reading {}'.format(coll_name))
-        df = pd.read_csv(complete_path_to_file(coll_name), dtype=read_dtypes_arg[coll_name])
+        df = pd.read_csv(complete_path_to_file(coll_name), dtype=dtypes)
 
         # read in all datetime types correctly
         for dt_col in ['postedAt', 'createdAt', 'votedAt', 'startTime', 'endTime',
                        'earliest_comment', 'most_recent_comment', 'earliest_vote', 'most_recent_vote',
                        'most_recent_post', 'earliest_post', 'most_recent_activity', 'earliest_activity',
-                       'true_earliest', 'curatedAt', 'earliest_view'
+                       'true_earliest', 'curatedAt', 'earliest_view', 'birth'
                        ]:
             if dt_col in df.columns:
                 df.loc[:, dt_col] = pd.to_datetime(df[dt_col])
