@@ -3,8 +3,8 @@ import numpy as np
 from collections import namedtuple
 from hashlib import md5
 import re
-from flipthetable import get_pg_engine, bulk_upload_to_pg, truncate_or_drop_tables, camel_to_snake
-from utils import timed
+from flipthetable import get_pg_engine, bulk_upload_to_pg, truncate_or_drop_tables, camel_to_snake, create_tables
+from utils import timed, mem_and_info
 
 urlRecord = namedtuple('urlRecord', ['url', 'documentType', 'title', 'documentId', 'author'])
 urlRecord.__new__.__defaults__ = (None,) * 5
@@ -28,10 +28,22 @@ def get_urls(start_date='2020-01-01'):
 
     return urls
 
+
+
+
+
+homepage_pattern = re.compile(r'(^/$)|(^/\?)', re.IGNORECASE)
+post_patterns = re.compile(r'(?<=/s/\w{17}/p/)(\w{17})|(?<=/posts/)\w{17}', re.IGNORECASE)
+post_custom_pattern = re.compile(r'((?<=/rationality/)|(?<=/codex/))([\w-]+)|((?<=/lw/\w{2}/)|(?<=/lw/\w{3}/))\w+', re.IGNORECASE)
+sequence_patterns = re.compile(r'(?<=/s/)\w{17}$', re.IGNORECASE)
+old_wiki_patterns = re.compile(r'wiki\.lesswrong', re.IGNORECASE)
+user_pattern = re.compile(r'((?<=\/user/)|(?<=\/users/))(\w+)', re.IGNORECASE)
+tags_pattern = re.compile(r'(?<=\/tag\/)([\w-]+)', re.IGNORECASE)
+
 def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse external urls
 
     def pattern_search(pattern):
-        return re.search(pattern, url, re.IGNORECASE)
+        return re.search(pattern, url) #, re.IGNORECASE)
 
     def simple_record_pattern(pattern, document_type=None):
         if not document_type:
@@ -48,7 +60,7 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
     tags = dfs['tags']
 
     ## Frontpage
-    homepage_pattern = r'(^/$)|(^/\?)'
+    # homepage_pattern = r'(^/$)|(^/\?)'
     if pattern_search(homepage_pattern): #pattern_search(homepage_pattern):
         return urlRecord(
             url=url,
@@ -57,7 +69,7 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
 
     ## POSTS
     # standard post url: "/posts/<id>" or "/s/<sequence_id>/p/<posts_id>"
-    post_patterns = r'(?<=/s/\w{17}/p/)(\w{17})|(?<=/posts/)\w{17}'
+    # post_patterns = r'(?<=/s/\w{17}/p/)(\w{17})|(?<=/posts/)\w{17}'
     matches = pattern_search(post_patterns)
     if matches:
         postId = matches.group(0)
@@ -73,7 +85,7 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
             )
 
     # "/rationalty/<slug>" or "/lw/<short_id>/slug" (resolve on slug)
-    post_custom_pattern = r'((?<=/rationality/)|(?<=/codex/))([\w-]+)|((?<=/lw/\w{2}/)|(?<=/lw/\w{3}/))\w+'
+    # post_custom_pattern = r'((?<=/rationality/)|(?<=/codex/))([\w-]+)|((?<=/lw/\w{2}/)|(?<=/lw/\w{3}/))\w+'
     matches = pattern_search(post_custom_pattern)
     if matches:
         post_slug = matches.group(0).replace('_', '-')
@@ -95,7 +107,7 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
 
     ##Sequences
     # "/s/<sequenceId>"
-    sequence_patterns = r'(?<=/s/)\w{17}$'
+    # sequence_patterns = r'(?<=/s/)\w{17}$'
     matches = pattern_search(sequence_patterns)
     if matches:
         sequenceId = matches.group(0)
@@ -116,7 +128,7 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
             )
 
     ## Old Wiki
-    old_wiki_patterns = r'wiki\.lesswrong'
+    # old_wiki_patterns = r'wiki\.lesswrong'
     matches = pattern_search(old_wiki_patterns)
     if matches:
         return urlRecord(
@@ -138,7 +150,7 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
             return ''
 
     ## Users
-    user_pattern = r'((?<=\/user/)|(?<=\/users/))(\w+)'
+    # user_pattern = r'((?<=\/user/)|(?<=\/users/))(\w+)'
     matches = pattern_search(user_pattern)
     if matches:
         userSlug = matches.group(0)
@@ -158,7 +170,7 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
             )
 
     ## Tags
-    tags_pattern = r'(?<=\/tag\/)([\w-]+)'
+    # tags_pattern = r'(?<=\/tag\/)([\w-]+)'
     matches = pattern_search(tags_pattern)
     if matches:
         tagSlug = matches.group(0)
@@ -223,7 +235,7 @@ def get_resolved_urls(dfs, sample=None, start_date=None, url_col='url'):
 
     return urls_resolved[cols]
 
-
+@timed
 def run_url_table_update(dfs, override_start=None):
 
     engine = get_pg_engine()
@@ -246,7 +258,9 @@ def run_url_table_update(dfs, override_start=None):
         urls_updated = pd.concat([urls_existing, urls_resolved_new]).drop_duplicates(subset=['url_hash'])
 
         # Replace existing PG table
-        truncate_or_drop_tables('urls', conn)
+        print(mem_and_info(urls_updated))
+        truncate_or_drop_tables('urls', conn, drop=True)
+        create_tables('urls', conn)
         bulk_upload_to_pg(urls_updated, table_name='urls', conn=conn)
 
     engine.dispose()
