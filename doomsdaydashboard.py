@@ -9,7 +9,7 @@ plotly.tools.set_credentials_file(username=get_config_field('PLOTLY', 'username'
                                       api_key=get_config_field('PLOTLY', 'api_key'))
 init_notebook_mode(connected=True)
 
-from losttheplotly import plot_table
+from plotly_ops import plot_table
 
 
 def update_petrov():
