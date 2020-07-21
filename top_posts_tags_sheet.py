@@ -15,11 +15,11 @@ def get_top_pages_last_n(n_days=90):
     return df
 
 
-def get_top_pages_last_n_with_urls(n_days=90, pageviews_minimum=50):
-    ga_pages = get_top_pages_last_n(90)
+def get_top_pages_last_n_with_urls(collections, n_days=90, pageviews_minimum=50):
+    ga_pages = get_top_pages_last_n(n_days)
 
     top_pages = ga_pages[ga_pages['ga:pageviews'] >= pageviews_minimum].sort_values('ga:pageviews', ascending=False)
-    urls_resolved = url.resolve_urls(top_pages, dfs, url_col='ga:pagePath')
+    urls_resolved = url.resolve_urls(top_pages, collections, url_col='ga:pagePath')
     top_pages_urls = top_pages.merge(urls_resolved, left_on='ga:pagePath', right_on='url', )
     top_pages_urls['birth'] = pd.datetime.now()
 
@@ -57,7 +57,7 @@ def run_top_posts_tags_job():
 
     if top_pages_urls is None or pd.datetime.now() - top_pages_urls['birth'].max() > pd.Timedelta(24, unit='h'):
         print('refreshing pages')
-        top_pages_urls = get_top_pages_last_n_with_urls(n_days=90)
+        top_pages_urls = get_top_pages_last_n_with_urls(n_days=90, collections=collections)
         et.write_collection('top_viewed_posts_last_90', top_pages_urls, today_str)
 
 
