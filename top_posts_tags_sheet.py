@@ -10,7 +10,7 @@ def get_top_pages_last_n(n_days=90):
     dims = ['ga:pagePath']
     metrics = ['ga:users', 'ga:sessions', 'ga:pageviews', 'ga:uniquePageviews', 'ga:avgTimeOnPage',
                'ga:avgPageLoadTime']
-    df = ga.get_report(dims, metrics, days=n_days)  # next_page_token)
+    df = ga.get_report(dims, metrics, days=n_days, page_size=10000)  # next_page_token)
 
     return df
 

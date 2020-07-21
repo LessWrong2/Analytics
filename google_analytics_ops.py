@@ -133,7 +133,7 @@ def get_referrer_metrics(start_date=None, end_date=None, days=30):
 
     dims = ['ga:date', 'ga:fullReferrer']
     metrics = ['ga:users', 'ga:sessions']
-    df = get_report(dims, metrics, start_date, end_date, days)  # next_page_token)
+    df = get_report(dims, metrics, start_date, end_date, days, page_size=10000)  # next_page_token)
 
     agg_referrer = lambda pattern, replacement: agg(df, 'ga:fullReferrer', 'referrer_agg', pattern, replacement)
     agg_referrer('facebook', 'facebook')
@@ -152,11 +152,11 @@ def get_device_metrics(start_date=None, end_date=None, days=180):
 
     return df[['date', 'ga:deviceCategory','ga:users', 'ga:sessions', 'ga:pageviews', 'ga:uniquePageviews']]
 
-def get_page_metrics(start_date=None, end_date=None, days=7):
+def get_page_metrics(start_date=None, end_date=None, days=7, page_size=10000):
 
         dims = ['ga:date', 'ga:pagePath']
         metrics = ['ga:users', 'ga:sessions', 'ga:pageviews', 'ga:uniquePageviews', 'ga:avgTimeOnPage', 'ga:avgPageLoadTime']
-        df = get_report(dims, metrics, start_date, end_date, days)  # next_page_token)
+        df = get_report(dims, metrics, start_date, end_date, days, page_size=page_size)  # next_page_token)
 
         df['page_agg'] = ''
 
@@ -172,7 +172,7 @@ def get_all_metrics():
     ga_metrics['source'] = get_source_metrics(days=180)
     ga_metrics['devices'] = get_device_metrics(days=90)
     ga_metrics['referrer'] = get_referrer_metrics(days=14)
-    ga_metrics['pages'] = get_page_metrics(days=14)
+    ga_metrics['pages'] = get_page_metrics(days=30)
 
     return ga_metrics
 
