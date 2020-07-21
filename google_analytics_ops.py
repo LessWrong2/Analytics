@@ -27,7 +27,7 @@ def get_report_internal(analytics, view_id, dimensions, metrics,
             'metrics': [{'expression': m} for m in metrics],
             'dimensions': [{'name': d} for d in dimensions],
             'pageSize': page_size,
-            'pageToken': page_token
+            'pageToken': page_token,
         }
     ]
     }
@@ -76,7 +76,7 @@ def get_report_recursive(analytics, view_id, dimensions, metrics,
         return pd.concat([df_acc, df])
 
 @timed
-def get_report(dims, metrics, start_date=None, end_date=None, days=None):
+def get_report(dims, metrics, start_date=None, end_date=None, days=None, page_size=None):
 
     view_id = get_config_field('GA', 'view_id')
     analytics = initialize_analytics_reporting()
@@ -93,7 +93,7 @@ def get_report(dims, metrics, start_date=None, end_date=None, days=None):
         end_date = pd.datetime.today().strftime('%Y-%m-%d')
         start_date = (pd.to_datetime(end_date) - pd.Timedelta(days-1, unit='d')).strftime('%Y-%m-%d')
 
-    df = get_report_recursive(analytics, view_id, dims, metrics, start_date, end_date, page_size=None)
+    df = get_report_recursive(analytics, view_id, dims, metrics, start_date, end_date, page_size=page_size)
     if 'ga:date' in df.columns:
         df['date'] = pd.to_datetime(df['ga:date'])
         df = df.drop(['ga:date'], axis=1)
