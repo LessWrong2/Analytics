@@ -4,7 +4,7 @@ import chart_studio.plotly.plotly as py
 import plotly.graph_objs as go
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 from lwdash import *
-from utils import get_config_field, timed, get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes
+from utils import get_config_field, timed, get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes, get_valid_views
 from gspread_pandas import Spread
 
 
@@ -135,6 +135,7 @@ def run_plotline(dfs, online=False, start_date=None, end_date=None, size=(1000, 
     valid_posts = get_valid_posts(dfs, required_upvotes=1)
     valid_comments = get_valid_comments(dfs)
     valid_votes = get_valid_votes(dfs)
+    valid_views = get_valid_views(dfs)
 
     plotly_args = {'start_date': start_date, 'end_date': end_date, 'pr': pr, 'ma': ma, 'size': size,
                    'online': online, 'annotations': annotations}
@@ -151,7 +152,7 @@ def run_plotline(dfs, online=False, start_date=None, end_date=None, size=(1000, 
     plotly_ts_ma(title='Num Votes (excluding self-votes)', raw_data=valid_votes, date_col='votedAt', color='orange', **plotly_args)
     plotly_uniques(title='Num Unique Voters', raw_data=valid_votes, date_col='votedAt', color='darkorange', **plotly_args)
 
-    plotly_ts_ma(title='Num Logged-In Post Views', raw_data=dpv, date_col='createdAt', color='red', **plotly_args)
+    plotly_ts_ma(title='Num Logged-In Post Views', raw_data=valid_views, date_col='createdAt', color='red', **plotly_args)
 
     # plot_table(downvote_monitoring(dfv, dfp, dfc, dfu, 2, ), title='Downvote Monitoring', online=online)
 

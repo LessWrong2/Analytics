@@ -137,12 +137,13 @@ def get_valid_votes(dfs):
     dfv = dfs['votes']
 
     # removes self-votes
-    a = dfv[~dfv['cancelled']].merge(dfp[['_id', 'userId']], left_on='documentId', right_on='_id',
-                                     suffixes=['', '_post'], how='left')
+    a = (dfv[(~dfv['cancelled'])&(dfv['collectionName'].isin(['Posts', 'Comments']))]
+         .merge(dfp[['_id', 'userId']], left_on='documentId', right_on='_id', suffixes=['', '_post'], how='left'))
     b = a.merge(dfc[['_id', 'userId']], left_on='documentId', right_on='_id', suffixes=['', '_comment'], how='left')
     b['userId_document'] = b['userId_comment'].fillna(b['userId_post'])
     b['self_vote'] = b['userId'] == b['userId_document']
     b = b[b['userId'].isin(get_valid_users(dfs, required_minimum_posts_views=None)['_id'])]
+
 
     return b[~b['self_vote']]
 
