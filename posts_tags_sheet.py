@@ -211,7 +211,7 @@ def run_top_posts_tags_job():
                       sheet_name='Posts (sorted by Karma)')
     upload_to_gsheets(tags_sheet.sort_values('Last Changed Date', ascending=False),
                       spreadsheet_name='LessWrong: Posts & Tags', sheet_name='Tags (sorted by Last Changed)')
-    upload_to_gsheets(tags_sheet.sort_values(['Grade', 'Tag Last Changed Date'], ascending=[False, False]),
+    upload_to_gsheets(tags_sheet.sort_values(['Grade', 'Last Changed Date'], ascending=[False, False]),
                       spreadsheet_name='LessWrong: Posts & Tags', sheet_name='Tags (sorted by Grade, Last Changed)')
 
 if __name__ == '__main__':
