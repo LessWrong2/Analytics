@@ -154,6 +154,8 @@ def get_collection_cleaned(coll_name, db,
             'createdAt',
             '_id',
             'name',
+            'userId',
+            'wikiGrade',
             'description',
             'slug',
             'deleted',
@@ -413,8 +415,6 @@ def clean_raw_votes(votes):
 
     votes.loc[:, 'cancelled'] = votes['cancelled'].fillna(False).astype(bool)
     votes.loc[:, 'isUnvote'] = votes['isUnvote'].fillna(False).astype(bool)
-    votes = votes.loc[~votes['cancelled'], :]
-
     votes.loc[:, 'afPower'] = votes['afPower'].fillna(0).astype('int8')
     votes.loc[:, 'collectionName'] = votes['collectionName'].astype('category')
     votes.loc[:, 'legacy'] = votes['legacy'].fillna(False).astype(bool)
