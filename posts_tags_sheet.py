@@ -104,7 +104,7 @@ def generate_tags_sheet(collections, tag_collections):
 
     tags_formatted.columns = ['Created By', 'Tag Name', 'Tag Last Changed', 'Grade', 'Post Count',
                               'Description', 'Posts', 'Edited', 'Last Added', 'Created', 'Last Changed Date',
-                              'Date Updated']
+                              'Data Updated']
 
     return tags_formatted
 
@@ -135,7 +135,7 @@ def format_for_upload(unformatted):
 
     formatted = unformatted[display_cols].copy()
     formatted['title'] =  formatted['title'] = '=HYPERLINK("www.lesswrong.com/posts/' + formatted['documentId'] \
-                                               + '?lw_soure=posts_sheet' + '", "' + formatted['title'].str.replace('"' ,'""') + '")'
+                                               + '?lw_source=posts_sheet' + '", "' + formatted['title'].str.replace('"' ,'""') + '")'
     formatted.columns = [col.replace('_', ' ') for col in formatted.columns]
     formatted = formatted.drop(['documentId'], axis=1)
     formatted['tags'] = formatted['tags'].astype(str).str.replace('[', '').str.replace(']', '').str.replace("'", '')
@@ -211,7 +211,7 @@ def run_top_posts_tags_job():
                       sheet_name='Posts (sorted by Karma)')
     upload_to_gsheets(tags_sheet.sort_values('Last Changed Date', ascending=False),
                       spreadsheet_name='LessWrong: Posts & Tags', sheet_name='Tags (sorted by Last Changed)')
-    upload_to_gsheets(tags_sheet.sort_values(['Grade', 'Tag Last Changed'], ascending=[False, False]),
+    upload_to_gsheets(tags_sheet.sort_values(['Grade', 'Tag Last Changed Date'], ascending=[False, False]),
                       spreadsheet_name='LessWrong: Posts & Tags', sheet_name='Tags (sorted by Grade, Last Changed)')
 
 if __name__ == '__main__':
