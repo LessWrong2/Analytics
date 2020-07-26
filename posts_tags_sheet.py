@@ -49,6 +49,7 @@ def generate_tags_sheet(collections, tag_collections):
     """Generates dataframe for uploads as tags sheet of public tag dashboard"""
 
     gradeDescriptions = {
+        0: 'Uncategorized',
         1: 'Flagged',
         2: 'Stub',
         3: 'C-Class',
