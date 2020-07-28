@@ -49,6 +49,7 @@ def generate_tags_sheet(collections, tag_collections):
     """Generates dataframe for uploads as tags sheet of public tag dashboard"""
 
     gradeDescriptions = {
+        -1: 'Missing',
         0: 'Uncategorized',
         1: 'Flagged',
         2: 'Stub',
@@ -72,7 +73,7 @@ def generate_tags_sheet(collections, tag_collections):
                                 )
     tags['last_edited'] = tags['description'].str['editedAt']
     tags['postCount'] = tags['postCount'].fillna(0)
-    tags.loc[:, 'grade'] = tags['wikiGrade'].apply(lambda x: gradeDescriptions[x])
+    tags.loc[:, 'grade'] = tags['wikiGrade'].fillna(-1).apply(lambda x: gradeDescriptions[x])
 
     # Replace userId of creator with displayname, add list of posts, add when last post was added
     tags = (tags
