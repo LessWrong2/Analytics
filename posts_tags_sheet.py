@@ -21,6 +21,23 @@ def create_tag_posts_list(tagrels, posts):
             )
 
 
+def format_tags_revisions_list(revisions):
+    return '\n\n'.join(['{author}, {timestamp}: {message}'.format(
+        timestamp=revision.editedAt.strftime('%m/%d %H:%M:%S'),
+        author=revision.displayName,
+        message=revision.commitMessage
+    ) for revision in revisions.reset_index().itertuples()])
+
+
+def generate_commit_message_histories(revisions, collections):
+    revisions = (revisions
+                 .merge(collections['users'][['_id', 'displayName']], left_on='userId', right_on='_id', suffixes=['', '_user'])
+                 .sort_values('editedAt', ascending=False)
+                )
+    commit_message_histories = revisions.groupby('documentId').apply(format_tags_revisions_list).to_frame('commit_message_history')
+    return commit_message_histories
+
+
 def time_delta_format(seconds):
     seconds = np.round(seconds)
     if seconds < 0:
@@ -61,9 +78,13 @@ def generate_tags_sheet(collections, tag_collections):
     tags = tag_collections['tags']
     tags = tags[~tags[['adminOnly', 'deleted']].any(axis=1)]  # no adminOnly or delete tags
     tagrels = tag_collections['tagrels']
+    revisions = tag_collections['revisions']
+
 
     tag_posts_list = create_tag_posts_list(tagrels, collections['posts'])
     last_post_added = tagrels[tagrels['score'] > 0].groupby('tagId')['createdAt'].max().to_frame('last_post_added')
+    commit_message_histories = generate_commit_message_histories(revisions, collections)
+
 
     tags['description_text'] = (et.htmlBody2plaintext(tags['description']
                                                       .str['html']
@@ -81,6 +102,7 @@ def generate_tags_sheet(collections, tag_collections):
                    suffixes=['', '_user'], how='left')
             .merge(tag_posts_list, left_on='_id', right_index=True, how='left', suffixes=['', '_list'])
             .merge(last_post_added, left_on='_id', right_index=True)
+            .merge(commit_message_histories, left_on='_id', right_index=True, how='left')
             .assign(last_changed=lambda x: x[['last_edited', 'last_post_added']].max(axis=1))
             .assign(createdAt=lambda x: x['createdAt'])
             .assign(last_edited=lambda x: x['last_edited'])
@@ -102,11 +124,12 @@ def generate_tags_sheet(collections, tag_collections):
                    + '", "' + tags['name'] + '")'
 
     tags_formatted = tags[['displayName', 'name', 'last_changed', 'grade', 'postCount', 'description_text',
-                           'posts', 'last_edited', 'last_post_added', 'createdAt', 'last_changed_date', 'data_updated']]
+                           'posts', 'last_edited', 'last_post_added', 'createdAt', 'commit_message_history', 'last_changed_date', 'data_updated']]
 
     tags_formatted.columns = ['Created By', 'Tag Name', 'Tag Last Changed', 'Grade', 'Post Count',
-                              'Description', 'Posts', 'Edited', 'Last Added', 'Created', 'Last Changed Date',
-                              'Data Updated']
+                              'Description', 'Posts', 'Edited', 'Last Added', 'Created', 'Commit Message History',
+                              'Last Changed Date', 'Data Updated']
+
 
     return tags_formatted
 
@@ -155,6 +178,11 @@ def run_top_posts_tags_job():
 
     collections = et.load_from_file(date_str='most_recent', coll_names=['users', 'posts', 'sequences', 'tags', 'tagrels'])
     tag_collections = et.get_collections_cleaned(coll_names=['tags', 'tagrels'])
+    tag_collections['revisions'] = et.get_collection('revisions',
+             db=et.get_mongo_db_object(),
+             query_filter={'collectionName': 'Tags', 'commitMessage': {'$exists': True, '$ne': ''}},
+             projection=['_id', 'userId', 'editedAt', 'documentId', 'collectionName', 'commitMessage']
+    )
 
     try:
         top_pages_urls = et.load_from_file('most_recent', ['top_viewed_posts_last_90'])['top_viewed_posts_last_90']
