@@ -179,11 +179,11 @@ def run_top_posts_tags_job():
 
     collections = et.load_from_file(date_str='most_recent', coll_names=['users', 'posts', 'sequences', 'tags', 'tagrels'])
     tag_collections = et.get_collections_cleaned(coll_names=['tags', 'tagrels'])
-    tag_collections['revisions'] = et.get_collection('revisions',
-             db=et.get_mongo_db_object(),
-             query_filter={'collectionName': 'Tags', 'commitMessage': {'$exists': True, '$ne': ''}},
-             projection=['_id', 'userId', 'editedAt', 'documentId', 'collectionName', 'commitMessage']
-    )
+    # tag_collections['revisions'] = et.get_collection('revisions',
+    #          db=et.get_mongo_db_object(),
+    #          query_filter={'collectionName': 'Tags', 'commitMessage': {'$exists': True, '$ne': ''}},
+    #          projection=['_id', 'userId', 'editedAt', 'documentId', 'collectionName', 'commitMessage']
+    # )
 
     try:
         top_pages_urls = et.load_from_file('most_recent', ['top_viewed_posts_last_90'])['top_viewed_posts_last_90']
