@@ -78,7 +78,7 @@ def generate_tags_sheet(collections, tag_collections):
     tags = tag_collections['tags']
     tags = tags[~tags[['adminOnly', 'deleted']].any(axis=1)]  # no adminOnly or delete tags
     tagrels = tag_collections['tagrels']
-    revisions = tag_collections['revisions']
+    # revisions = tag_collections['revisions']
 
 
     tag_posts_list = create_tag_posts_list(tagrels, collections['posts'])
