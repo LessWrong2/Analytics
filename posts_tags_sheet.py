@@ -76,6 +76,7 @@ def generate_tags_sheet(collections, tag_collections):
     }
 
     tags = tag_collections['tags']
+    tag_portal_body = tags[tags['_id'] == 'y7dNF8jcJLgJbb8TF'].iloc[0]['description']['html'] #need before we filter
     tags = tags[~tags[['adminOnly', 'deleted']].any(axis=1)]  # no adminOnly or delete tags
     tagrels = tag_collections['tagrels']
     # revisions = tag_collections['revisions']
@@ -95,6 +96,14 @@ def generate_tags_sheet(collections, tag_collections):
     tags['last_edited'] = tags['description'].str['editedAt']
     tags['postCount'] = tags['postCount'].fillna(0)
     tags.loc[:, 'grade'] = tags['wikiGrade'].fillna(-1).apply(lambda x: gradeDescriptions[x])
+
+    #Is tag on the tag portal?
+    tags['allSlugs'] = tags['slug'].apply(lambda x: [x])
+    tags.loc[tags['oldSlugs'].notnull(), 'allSlugs'] = tags.loc[tags['oldSlugs'].notnull()].apply(
+        lambda x: x['oldSlugs'] + x['allSlugs'], axis=1)
+    tags['in_tag_portal'] = tags['allSlugs'].apply(
+        lambda slugs: np.any(['wrong.com/tag/' + slug in tag_portal_body for slug in slugs]))
+
 
     # Replace userId of creator with displayname, add list of posts, add when last post was added
     tags = (tags
@@ -125,11 +134,11 @@ def generate_tags_sheet(collections, tag_collections):
 
     tags_formatted = tags[['displayName', 'name', 'last_changed', 'grade', 'postCount', 'description_text',
                            'posts', 'last_edited', 'last_post_added', 'createdAt', #'commit_message_history',
-                           'last_changed_date', 'data_updated']]
+                           'last_changed_date', 'data_updated', 'in_tag_portal']]
 
     tags_formatted.columns = ['Created By', 'Tag Name', 'Tag Last Changed', 'Grade', 'Post Count',
                               'Description', 'Posts', 'Edited', 'Last Added', 'Created', #'Commit Message History',
-                              'Last Changed Date', 'Data Updated']
+                              'Last Changed Date', 'Data Updated', 'Tag Portal']
 
 
     return tags_formatted
