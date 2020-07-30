@@ -10,13 +10,14 @@ from multiprocessing import cpu_count, Pool
 from selectolax.parser import HTMLParser
 
 from pymongo import MongoClient
+from pymongo.read_preferences import ReadPreference
 
 
 
 def get_mongo_db_object():
     MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
     MONGO_DB_URL = get_config_field('MONGODB', 'prod_db_url')
-    client = MongoClient(MONGO_DB_URL)
+    client = MongoClient(MONGO_DB_URL, read_preference=ReadPreference.SECONDARY)
     db = client[MONGO_DB_NAME]
     return db
 
