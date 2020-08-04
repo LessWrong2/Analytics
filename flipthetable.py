@@ -6,6 +6,7 @@ import re
 from setthetable import table_creation_commands
 from utils import timed, get_config_field, print_and_log
 from io import StringIO
+import csv
 
 from IPython.display import display
 
@@ -288,7 +289,7 @@ def bulk_upload_to_pg(df, table_name, conn=None, clean_text=True):
     sep = '\t'
 
     buffer = StringIO()
-    buffer.write(df.to_csv(index=None, header=None, sep=sep, na_rep=''))  # Write the Pandas DataFrame as a csv to the buffer
+    buffer.write(df.to_csv(index=None, header=None, sep=sep, na_rep='', escapechar='\\', quoting=csv.QUOTE_NONE))  # Write the Pandas DataFrame as a csv to the buffer
     buffer.seek(0)  # Be sure to reset the position to the start of the stream
 
     def execute_copy(conn):
@@ -312,28 +313,28 @@ def run_pg_pandas_transfer(dfs,
 
     dfs_prepared = prep_frames_for_db(dfs)
 
-    try:
-        engine = get_pg_engine()
+# try:
+    engine = get_pg_engine()
 
-        with engine.begin() as conn:
+    with engine.begin() as conn:
 
-            if drop_tables:
-                print_and_log('dropping postgres tables')
-            else:
-                print_and_log('truncating postgres tables')
-            truncate_or_drop_tables(tables, conn=conn, drop=drop_tables)
-            if drop_tables:
-                create_tables(tables, conn)
+        if drop_tables:
+            print_and_log('dropping postgres tables')
+        else:
+            print_and_log('truncating postgres tables')
+        truncate_or_drop_tables(tables, conn=conn, drop=drop_tables)
+        if drop_tables:
+            create_tables(tables, conn)
 
-            print_and_log('loading tables into postgres db')
-            [bulk_upload_to_pg(dfs_prepared[coll], table_name=coll, conn=conn) for coll in tables]
+        print_and_log('loading tables into postgres db')
+        [bulk_upload_to_pg(dfs_prepared[coll], table_name=coll, conn=conn) for coll in tables]
 
-            print_and_log('transaction successful!')
+        print_and_log('transaction successful!')
 
-    except:
-        print_and_log('transfer failed')
-    finally:
-        engine.dispose()
+# except:
+#     print_and_log('transfer failed')
+# finally:
+    engine.dispose()
 
 
 def test_db_contents():
