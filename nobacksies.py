@@ -6,7 +6,7 @@ from cellularautomaton import upload_to_gsheets
 
 def format_tags_posts_list(posts):
     return ' '.join(['({number}) {title};  '.format(number=post.Index + 1, title=post.title)
-                     for post in posts.reset_index().itertuples()])
+                     for post in posts.head(50).reset_index().itertuples()])
 
 
 def create_tag_posts_list(tag_rels, posts):
