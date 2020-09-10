@@ -4,7 +4,7 @@ from utils import timed, get_config_field
 
 
 def upload_to_gsheets(df, spreadsheet_name, sheet_name, create_spread=False, create_sheet=False, grant_access=None,
-                      index=False, format_columns=False):
+                      index=False, format_columns=False, start=(1,1), headers=True):
 
     df = df.copy()
 
@@ -13,7 +13,7 @@ def upload_to_gsheets(df, spreadsheet_name, sheet_name, create_spread=False, cre
 
     spreadsheet = Spread(spread=spreadsheet_name, sheet=sheet_name, create_spread=create_spread,
                          create_sheet=create_sheet, user=get_config_field('GSHEETS', 'user'))
-    spreadsheet.df_to_sheet(df, index=index)
+    spreadsheet.df_to_sheet(df, index=index, start=start, headers=headers)
 
     if grant_access == 'primary':
         permissions_list = ['{email}|writer'.format(email=get_config_field('GSHEETS', 'primary_email'))]
