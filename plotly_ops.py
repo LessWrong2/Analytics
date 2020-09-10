@@ -6,6 +6,7 @@ from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 from lwdash import *
 from utils import get_config_field, timed, get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes, get_valid_views
 from gspread_pandas import Spread
+import numpy as np
 
 
 def generate_annotation_object(index, x, y, text):
@@ -131,7 +132,7 @@ def run_plotline(dfs, online=False, start_date=None, end_date=None, size=(1000, 
 
     dpv = dfs['views']  # pv = post-views
 
-    valid_users = get_valid_users(dfs, required_minimum_posts_views=5)
+    valid_users = get_valid_users(dfs, required_minimum_posts_views=1)
     valid_posts = get_valid_posts(dfs, required_upvotes=1)
     valid_comments = get_valid_comments(dfs)
     valid_votes = get_valid_votes(dfs)
