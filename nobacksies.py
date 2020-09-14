@@ -54,6 +54,7 @@ def format_tags_table_for_upload(tags_table):
     tags_table['name'] = '=HYPERLINK("www.lesswrong.com/tag/'.lower() + tags_table['slug'] + '", "' + tags_table[
         'name'] + '")'
     tags_table['postCount'] = tags_table['postCount'].fillna(0)
+    tags_table['description'] = tags_table['description'].str.slice(0,500)
 
     cols = ['earliest_vote_on_tag',
             'latest_post_added',

@@ -18,7 +18,7 @@ def create_tag_posts_list(tagrels, posts):
             .groupby('tagId')
             .apply(format_tags_posts_list)
             .to_frame('posts')
-            )
+            ).head(50)
 
 
 def format_tags_revisions_list(revisions):
@@ -129,7 +129,7 @@ def generate_tags_sheet(collections, tag_collections):
         lambda x: time_delta_format(x.total_seconds()))
 
     # add hyperlink for gsheets
-    tags['name'] = '=HYPERLINK("www.lesswrong.com/tag/'.lower() + tags['slug'] + '?lw_source=tags_sheet'\
+    tags['name'] = '=HYPERLINK("www.lesswrong.com/tag/'.lower() + tags['slug'] + '?showPostCount=true&useTagName=true'\
                    + '", "' + tags['name'] + '")'
 
     tags_formatted = tags[['displayName', 'name', 'last_changed', 'grade', 'postCount', 'description_text',
