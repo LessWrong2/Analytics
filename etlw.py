@@ -825,7 +825,8 @@ def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
     # ##5. PLOT GRAPHS TO PLOTLY DASHBOARD
     if plotly:
         start_date = (pd.to_datetime(date_str) - pd.Timedelta(180, unit='d')).strftime('%Y-%m-%d')
-        run_plotline(dfs_enriched, start_date=start_date, size=(700, 350), pr='W', ma=4, online=True)
+        run_plotline(dfs_enriched, start_date=start_date, size=(700, 350), pr='D', ma=[1, 7, 28], online=True,
+                      widths={1: 0.75, 7: 1.5, 28: 3}, hidden_by_default=[7])
 
     # ##6. PLOT GRAPHS TO PLOTLY DASHBOARD
     if gsheets:
