@@ -32,9 +32,9 @@ def upload_to_gsheets(df, spreadsheet_name, sheet_name, create_spread=False, cre
     return spreadsheet.url
 
 
-def create_and_update_user_sheet(dfu, spreadsheet, limit=None):
+def create_and_update_user_sheet(users, spreadsheet, limit=None):
     # data = dfu[~dfu['banned']].sort_values('karma', ascending=False) //old
-    data = dfu[(dfu['karma'] > 0) | (dfu['num_distinct_posts_viewed'] > 0) | (dfu['signUpReCaptchaRating'] >= 0.7)]
+    data = users[(users['karma'] > 0) | (users['num_distinct_posts_viewed'] > 0) | (users['signUpReCaptchaRating'] >= 0.7)]
     data.loc[data['days_since_active'] <= 0, 'days_since_active'] = 0
     data['username'] = '=HYPERLINK("www.lesswrong.com/users/'.lower() + data['username'] + '", "' + data[
         'username'] + '")'

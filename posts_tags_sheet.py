@@ -3,7 +3,7 @@ import numpy as np
 import etlw as et
 import google_analytics_ops as ga
 import url_grey as url
-from cellularautomaton import upload_to_gsheets
+from google_sheet_ops import upload_to_gsheets
 from utils import timed
 
 

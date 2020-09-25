@@ -1,7 +1,7 @@
 import copy
 import pandas as pd
 from utils import get_config_field, timed, print_and_log
-from cellularautomaton import upload_to_gsheets
+from google_sheet_ops import upload_to_gsheets
 
 from googleapiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
