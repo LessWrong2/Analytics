@@ -47,6 +47,7 @@ def create_and_update_user_sheet(users, spreadsheet, limit=None):
         'birth',
         '_id',
         'username',
+        'email',
         'karma',
         'days_since_active',
         'most_recent_activity',
