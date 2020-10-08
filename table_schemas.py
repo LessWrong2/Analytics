@@ -314,7 +314,6 @@ table_creation_commands = {
 );""",
     'gather_town_sessions': """CREATE TABLE gather_town_sessions
 (
-  timestamp         timestamp,
   name              varchar(64),
   session_no        int,
   num_checks        int,
@@ -322,20 +321,24 @@ table_creation_commands = {
   start_time        timestamp,
   end_time          timestamp,
   first_visit       boolean,
-  approx_duration   numeric
+  lw_team           boolean,
+  approx_duration   numeric,
   birth             timestamp
 );""",
     'gather_town_users': """CREATE TABLE gather_town_users
 (
-  timestamp         timestamp,
   name              varchar(64),
-  session_no        int,
-  num_checks        int,
-  max_gap           numeric,
-  start_time        timestamp,
-  end_time          timestamp,
-  first_visit       boolean,
-  approx_duration   numeric
-  birth             timestamp
+  num_sessions          int,
+  num_checks            int,
+  num_distinct_days     int,
+  first_seen            timestamp,
+  last_seen             timestamp,
+  total_approx_duration numeric,
+  mean_session_length   numeric,
+  median_session_length numeric,
+  max_session_length   numeric,
+  min_session_length   numeric,
+  lw_team               boolean,
+  birth                 timestamp
 );"""
 }
