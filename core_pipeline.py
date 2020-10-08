@@ -120,7 +120,9 @@ def get_collection_cleaned(coll_name, db,
             'subscribers',
             'shortformFeedId',
             'signUpReCaptchaRating',
-            'reviewedByUserId'
+            'reviewedByUserId',
+            'hideWalledGardenUI',
+            'walledGardenInvite'
         ],
         'votes': [
             'afPower',
@@ -402,7 +404,7 @@ def clean_raw_users(users):
     users.loc[:, 'afKarma'] = users['afKarma'].fillna(0)
     for col in ['postCount', 'commentCount', 'frontpagePostCount', 'karma', 'legacyKarma']:
         users.loc[:, col] = users.loc[:, col].fillna(0).astype(int)
-    for col in ['deleted', 'legacy', 'banned']:
+    for col in ['deleted', 'legacy', 'banned', 'hideWalledGardenUI', 'walledGardenInvite']:
         users.loc[:, col] = users.loc[:, col].fillna(False).astype(bool)
 
     return users
@@ -805,7 +807,7 @@ def enrich_collections(colls_dfs,
 
 
 @timed
-def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsheets=True,
+def run_core_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsheets=True,
                       metrics=True, postgres=True, tags=True, ga=True, urls=True, limit=None):
     # ##1. LOAD DATA
     if from_file:
@@ -856,7 +858,7 @@ def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
 
 
 if __name__ == '__main__':
-    run_etlw_pipeline(
+    run_core_pipeline(
                       date_str=pd.datetime.today().strftime('%Y%m%d'),
                       plotly=True,
                       gsheets=True,

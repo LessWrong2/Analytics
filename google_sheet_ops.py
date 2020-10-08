@@ -60,6 +60,8 @@ def create_and_update_user_sheet(users, spreadsheet, limit=None):
         'num_votes_last_180_days',
         'num_comments_last_180_days',
         'num_posts_last_180_days',
+        'walledGardenInvite',
+        'hideWalledGardenUI',
     ]
 
     # recent_count_cols = [ # test removal since trying fix upstream

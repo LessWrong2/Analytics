@@ -1,5 +1,5 @@
 import pandas as pd
-import etlw as et
+import core_pipeline as et
 from utils import get_config_field
 import plotly
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot

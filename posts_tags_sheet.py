@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import etlw as et
+import core_pipeline as et
 import google_analytics_ops as ga
 import url_grey as url
 from google_sheet_ops import upload_to_gsheets

@@ -3,7 +3,7 @@ import numpy as np
 import configparser
 import sqlalchemy as sqa
 import re
-from setthetable import table_creation_commands
+from table_schemas import table_creation_commands
 from utils import timed, get_config_field, print_and_log
 from io import StringIO
 import csv
@@ -77,6 +77,8 @@ def prepare_users(dfu):
                       'num_votes_last_180_days',
                       'num_views_last_180_days',
                       'num_distinct_posts_viewed_last_180_days',
+                      'walledGardenInvite',
+                      'hideWalledGardenUI',
                       'bio',
                       'email']
 
@@ -198,6 +200,7 @@ def prepare_tags(tags):
 
     return tags[tag_sql_cols]
 
+
 def prepare_sequences(sequences):
     sequences_sql_cols = [
         '_id',
@@ -212,6 +215,7 @@ def prepare_sequences(sequences):
     ]
 
     return sequences[sequences_sql_cols]
+
 
 def get_pg_engine():
     config = configparser.ConfigParser()

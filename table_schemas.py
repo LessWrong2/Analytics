@@ -49,6 +49,8 @@ table_creation_commands = {
         num_votes_last_180_days                 numeric,
         num_views_last_180_days                 numeric,
         num_distinct_posts_viewed_last_180_days numeric,
+        walled_garden_invite                    boolean,
+        hide_walled_garden_ui                   boolean,
         bio                                     text,
         email                                   text,
         birth                                   timestamp
@@ -294,5 +296,46 @@ table_creation_commands = {
   is_desktop            boolean,
   is_bot                boolean,
   birth                 timestamp
+);""",
+                   'gather_town_checks': """CREATE TABLE gather_town_checks
+(
+  timestamp         timestamp,
+  name              varchar(64),
+  busy              int,
+  audio             boolean,
+  video             boolean,
+  blocked           text,
+  elapsed_min       numeric,
+  first_visit       boolean,
+  new_session       boolean,
+  session_no        int,
+  lw_team           boolean,
+  birth             timestamp
+);""",
+    'gather_town_sessions': """CREATE TABLE gather_town_sessions
+(
+  timestamp         timestamp,
+  name              varchar(64),
+  session_no        int,
+  num_checks        int,
+  max_gap           numeric,
+  start_time        timestamp,
+  end_time          timestamp,
+  first_visit       boolean,
+  approx_duration   numeric
+  birth             timestamp
+);""",
+    'gather_town_users': """CREATE TABLE gather_town_users
+(
+  timestamp         timestamp,
+  name              varchar(64),
+  session_no        int,
+  num_checks        int,
+  max_gap           numeric,
+  start_time        timestamp,
+  end_time          timestamp,
+  first_visit       boolean,
+  approx_duration   numeric
+  birth             timestamp
 );"""
 }
