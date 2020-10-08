@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from core_pipeline import get_collection, get_mongo_db_object
 from flipthetable import get_pg_engine, truncate_or_drop_tables, bulk_upload_to_pg
+from utils import timed
 
 
 def get_raw_gt_data():
@@ -59,7 +60,7 @@ def generate_sessions_table(checks):
     sessions = (checks
         .groupby(['name', 'session_no'])
         .agg({
-        'userSetAffiliation': 'size',
+        'audio': 'size',
         'elapsed_min': lambda x: x.iloc[1:].max(),
         'timestamp': ['min', 'max'],
         'first_visit': np.any,
@@ -96,7 +97,7 @@ def generate_users_table(sessions):
 
     return user_stats
 
-
+@timed
 def run_gather_town_pipeline():
 
     raw_gt_data = get_raw_gt_data()

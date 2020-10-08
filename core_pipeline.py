@@ -18,6 +18,7 @@ from flipthetable import run_pg_pandas_transfer
 from nobacksies import run_tag_pipeline
 from google_analytics_ops import run_ga_pipeline
 from url_grey import run_url_table_update
+from gather_town_pipeline import run_gather_town_pipeline
 from utils import timed, print_and_log, get_config_field, get_valid_users, get_valid_posts, \
     get_valid_comments, get_valid_votes, get_valid_views, get_collection, get_mongo_db_object
 
@@ -808,7 +809,8 @@ def enrich_collections(colls_dfs,
 
 @timed
 def run_core_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsheets=True,
-                      metrics=True, postgres=True, tags=True, ga=True, urls=True, limit=None):
+                      metrics=True, postgres=True, tags=True, ga=True, urls=True,
+                      gather_town=True, limit=None):
     # ##1. LOAD DATA
     if from_file:
         dfs_enriched = load_from_file(date_str)
@@ -820,37 +822,41 @@ def run_core_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
         # ##3. WRITE OUT ENRICHED COLLECTIONS
         write_collections(dfs_enriched, date_str=today)
 
-    # ##4 METRIC STUFF - PLOTS AND SHEETS
+    # ##2 METRIC STUFF - PLOTS AND SHEETS
     if metrics:
         run_metric_pipeline(dfs_enriched, date_str, online=True, sheets=True, plots=True)
 
-    # ##5. PLOT GRAPHS TO PLOTLY DASHBOARD
+    # ##3. PLOT GRAPHS TO PLOTLY DASHBOARD
     if plotly:
         start_date = (pd.to_datetime(date_str) - pd.Timedelta(180, unit='d')).strftime('%Y-%m-%d')
         run_plotline(dfs_enriched, start_date=start_date, size=(700, 350), pr='D', ma=[1, 7, 28], online=True,
                       widths={1: 0.75, 7: 1.5, 28: 3}, hidden_by_default=[7])
 
-    # ##6. PLOT GRAPHS TO PLOTLY DASHBOARD
+    # ##4. PLOT GRAPHS TO PLOTLY DASHBOARD
     if gsheets:
         create_and_update_all_sheets(dfs_enriched, spreadsheet_name=get_config_field('GSHEETS', 'spreadsheet_name'))
 
-    # ##7. LOAD DATA FILES TO POSTGRES DB
+    # ##5. LOAD DATA FILES TO POSTGRES DB
     if postgres:
         run_pg_pandas_transfer(dfs_enriched)
 
-    # ##8. RUN TAGS PIPELINE
+    # ##6. RUN TAGS PIPELINE
     if tags:
         run_tag_pipeline(dfs_enriched)
 
-    # ##9. GOOGLE ANALYTICS PIPELINE
+    # ##7. GOOGLE ANALYTICS PIPELINE
     if ga:
         run_ga_pipeline()
 
-    # ##10. URLS TABLE UPDATE
+    # ##8. URLS TABLE UPDATE
     if urls:
         run_url_table_update(dfs_enriched)
 
-    # ##1. CLEAN UP OLD FILES TO SAVE SPACE
+    # ##9. GATHER TOWN
+    if gather_town:
+        run_gather_town_pipeline()
+
+    # ##10. CLEAN UP OLD FILES TO SAVE SPACE
     if clean_up:
         clean_up_old_files(days_to_keep=2)
 
