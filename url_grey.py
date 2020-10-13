@@ -3,7 +3,7 @@ import numpy as np
 from collections import namedtuple
 from hashlib import md5
 import re
-from flipthetable import get_pg_engine, bulk_upload_to_pg, truncate_or_drop_tables, camel_to_snake, create_tables
+from postgres_ops import get_pg_engine, bulk_upload_to_pg, truncate_or_drop_tables, camel_to_snake, create_tables
 from utils import timed, mem_and_info
 
 urlRecord = namedtuple('urlRecord', ['url', 'documentType', 'title', 'documentId', 'author'])

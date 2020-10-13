@@ -5,7 +5,7 @@ from google_sheet_ops import upload_to_gsheets
 
 from googleapiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
-from flipthetable import get_pg_engine, create_tables, truncate_or_drop_tables, bulk_upload_to_pg
+from postgres_ops import get_pg_engine, create_tables, truncate_or_drop_tables, bulk_upload_to_pg
 
 
 def initialize_analytics_reporting():

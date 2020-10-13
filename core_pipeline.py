@@ -14,7 +14,7 @@ import configparser
 from plotly_ops import run_plotline
 from google_sheet_ops import *
 from karmametric import run_metric_pipeline
-from flipthetable import run_pg_pandas_transfer
+from postgres_ops import run_pg_pandas_transfer
 from nobacksies import run_tag_pipeline
 from google_analytics_ops import run_ga_pipeline
 from url_grey import run_url_table_update
