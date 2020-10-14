@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-from core_pipeline import get_collection, get_mongo_db_object
-from flipthetable import get_pg_engine, truncate_or_drop_tables, bulk_upload_to_pg
+from utils import get_collection, get_mongo_db_object
+from postgres_ops import get_pg_engine, truncate_or_drop_tables, bulk_upload_to_pg
 from utils import timed
 
 
@@ -55,22 +55,45 @@ def generate_checks_table(gt_raw):
     return checks[checks_output_cols]
 
 
+def generate_presence_table(checks):
+    presence = (checks
+                .groupby(['timestamp'])['name']
+                .agg(['nunique', lambda x: x.tolist()])
+                .fillna(0)
+                .sort_index()
+                )
+
+    #     presence['total_present'] = presence[[F.sum(axis=1)
+    presence.columns = ['num_present', 'names']
+
+    return presence
+
+
 def generate_sessions_table(checks):
 
+    presence = generate_presence_table(checks)
+
     sessions = (checks
+        .merge(presence, on='timestamp')
+        .sort_values('timestamp')
         .groupby(['name', 'session_no'])
         .agg({
         'audio': 'size',
         'elapsed_min': lambda x: x.iloc[1:].max(),
         'timestamp': ['min', 'max'],
         'first_visit': np.any,
-        'lw_team': np.any
+        'lw_team': np.any,
+        'num_present': [lambda x: x.iloc[0]<2, lambda x: x.iloc[-1]<2, lambda x: (x>1).mean().round(2)],
+        'names': lambda x: list(np.unique(x.sum()))
     })
     )
 
-    sessions.columns = ['num_checks', 'max_gap', 'start_time', 'end_time', 'first_visit', 'lw_team']
+    sessions.columns = ['num_checks', 'max_gap', 'start_time', 'end_time', 'first_visit', 'lw_team', 'alone_at_start',
+                        'alone_at_end', 'percent_accompanied', 'concurrent_visitors']
     sessions['approx_duration'] = (sessions['end_time'] - sessions['start_time']).dt.total_seconds().div(60).round(2)
-    sessions = sessions.reset_index()  # .sort_values('start_time')
+    sessions = sessions.reset_index()
+    sessions.apply(lambda x: x['concurrent_visitors'].remove(x['name']), axis=1) #.sample(10)
+    sessions['concurrent_visitors'] = sessions['concurrent_visitors'].astype(str)
 
     return sessions
 

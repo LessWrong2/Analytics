@@ -278,25 +278,6 @@ table_creation_commands = {
     ga_avg_page_load_time   numeric,
     birth                   timestamp
 );""",
-    'user_agents': """CREATE TABLE user_agents
-(
-  ua_hash               varchar(32),
-  ua_string             text,
-  ua_pretty             text,
-  browser_family        varchar(128),
-  browser_version       varchar(32),
-  os_family             varchar(32),
-  os_version            varchar(32),
-  device_family         text,
-  device_brand          varchar(128),
-  device_model          varchar(128),
-  is_mobile             boolean,
-  is_tablet             boolean,
-  is_mobile_or_tablet   boolean,
-  is_desktop            boolean,
-  is_bot                boolean,
-  birth                 timestamp
-);""",
                    'gather_town_checks': """CREATE TABLE gather_town_checks
 (
   timestamp         timestamp,
@@ -323,6 +304,10 @@ table_creation_commands = {
   first_visit       boolean,
   lw_team           boolean,
   approx_duration   numeric,
+  alone_at_start    boolean,
+  alone_at_end      boolean,
+  percent_accompanied numeric,
+  concurrent_visitors   text,
   birth             timestamp
 );""",
     'gather_town_users': """CREATE TABLE gather_town_users
