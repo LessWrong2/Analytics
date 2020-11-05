@@ -39,6 +39,8 @@ def generate_checks_table(gt_raw):
     checks['session_no'] = checks.groupby('name')['new_session'].cumsum().fillna(0).astype(int)
 
     checks['busy'] = checks['busy'].fillna(0).astype(int)
+    # checks['name'] = checks['name'].fillna('Anonymous')
+    checks['player_id'] = checks['playerId'].fillna( 'missing_' + checks['name']) #preserves backwards compatibility with change
 
     checks['x_coord'] = checks['location'].str['x']
     checks['y_coord'] = checks['location'].str['y']
@@ -46,10 +48,15 @@ def generate_checks_table(gt_raw):
 
     checks['lw_team'] = checks['name'].isin(['Raemon', 'Habryka', 'Ruby', 'Ben Pace', 'jimrandomh'])
 
+
+    #fancy fixup of before time id-less to now with id's
+
+
+
     for col in ['audio', 'video', 'blocked']:
         checks[col] = checks[col].fillna(False)
 
-    checks_output_cols = ['timestamp', 'name', 'busy', 'audio', 'video', 'blocked', 'elapsed_min', 'first_visit',
+    checks_output_cols = ['timestamp', 'player_id', 'name', 'busy', 'audio', 'video', 'blocked', 'elapsed_min', 'first_visit',
                           'new_session', 'session_no', 'lw_team']
 
     return checks[checks_output_cols]
@@ -57,6 +64,8 @@ def generate_checks_table(gt_raw):
 
 def generate_presence_table(checks):
     presence = (checks
+                .sort_values('timestamp')
+                .drop_duplicates(subset=['timestamp', 'player_id'], keep='last')
                 .groupby(['timestamp'])['name']
                 .agg(['nunique', lambda x: x.tolist()])
                 .fillna(0)
@@ -74,10 +83,12 @@ def generate_sessions_table(checks):
     presence = generate_presence_table(checks)
 
     sessions = (checks
+        .drop_duplicates(subset=['timestamp', 'player_id'], keep='last')
         .merge(presence, on='timestamp')
         .sort_values('timestamp')
-        .groupby(['name', 'session_no'])
+        .groupby(['player_id', 'session_no'])
         .agg({
+        'name': 'last',
         'audio': 'size',
         'elapsed_min': lambda x: x.iloc[1:].max(),
         'timestamp': ['min', 'max'],
@@ -88,11 +99,11 @@ def generate_sessions_table(checks):
     })
     )
 
-    sessions.columns = ['num_checks', 'max_gap', 'start_time', 'end_time', 'first_visit', 'lw_team', 'alone_at_start',
+    sessions.columns = ['name', 'num_checks', 'max_gap', 'start_time', 'end_time', 'first_visit', 'lw_team', 'alone_at_start',
                         'alone_at_end', 'percent_accompanied', 'concurrent_visitors']
     sessions['approx_duration'] = (sessions['end_time'] - sessions['start_time']).dt.total_seconds().div(60).round(2)
     sessions = sessions.reset_index()
-    sessions.apply(lambda x: x['concurrent_visitors'].remove(x['name']), axis=1) #.sample(10)
+    sessions.apply(lambda x: x['concurrent_visitors'].remove(x['name']), axis=1)
     sessions['concurrent_visitors'] = sessions['concurrent_visitors'].astype(str)
 
     return sessions
@@ -101,8 +112,9 @@ def generate_sessions_table(checks):
 def generate_users_table(sessions):
 
     user_stats = (sessions
-                  .groupby('name')
+                  .groupby('player_id')
                   .agg({
+        'name': 'last',
         'session_no': 'size',
         'num_checks': 'sum',
         'start_time': [lambda x: x.dt.date.nunique(), 'min'],
@@ -114,7 +126,7 @@ def generate_users_table(sessions):
                   .reset_index()
                   )
 
-    user_stats.columns = ['name', 'num_sessions', 'num_checks', 'num_distinct_days', 'first_seen', 'last_seen',
+    user_stats.columns = ['player_id', 'name', 'num_sessions', 'num_checks', 'num_distinct_days', 'first_seen', 'last_seen',
                           'total_approx_duration', 'mean_session_length', 'median_session_length',
                           'max_session_length', 'min_session_length', 'lw_team']
 
