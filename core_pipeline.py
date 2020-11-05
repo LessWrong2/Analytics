@@ -11,43 +11,22 @@ import os
 import shutil
 import configparser
 
-from losttheplotly import run_plotline
-from cellularautomaton import *
+from plotly_ops import run_plotline
+from google_sheet_ops import *
 from karmametric import run_metric_pipeline
-from flipthetable import run_pg_pandas_transfer
+from postgres_ops import run_pg_pandas_transfer
+from nobacksies import run_tag_pipeline
+from google_analytics_ops import run_ga_pipeline
+from url_grey import run_url_table_update
+from gather_town_pipeline import run_gather_town_pipeline
 from utils import timed, print_and_log, get_config_field, get_valid_users, get_valid_posts, \
-    get_valid_comments, get_valid_votes, get_valid_views
+    get_valid_comments, get_valid_votes, get_valid_views, get_collection, get_mongo_db_object
 
 MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
 MONGO_DB_URL = get_config_field('MONGODB', 'prod_db_url')
 BASE_PATH = get_config_field('PATHS','base')
 ENV = get_config_field('ENV', 'env')
 
-
-def get_mongo_db_object():
-    client = MongoClient(MONGO_DB_URL)
-    db = client[MONGO_DB_NAME]
-    return db
-
-
-def get_collection(coll_name, db, projection=None, query_filter=None, limit=None):
-    """
-    Downloads and returns single collection from MongoDB and returns dataframe.
-
-    Optional query filter can be applied (useful for downloading logins post-views from events table.
-    Returns a dataframe.
-    """
-
-    kwargs = {} # necessary because pymongo function doesn't accept limit=None
-    if limit:
-        kwargs.update({'limit':limit})
-
-    print_and_log('{} download started at {}. . .'.format(coll_name, datetime.datetime.today()))
-    coll_list = db[coll_name].find(query_filter, projection=projection, **kwargs)
-    coll_df = pd.DataFrame(list(coll_list))
-    print_and_log('{} download completed at {}!'.format(coll_name, datetime.datetime.today()))
-
-    return coll_df
 
 
 @timed
@@ -62,7 +41,7 @@ def get_collection_cleaned(coll_name, db,
 
      Optionally writes to file based on io_config argument bundle.
 
-     Returns a dataframe.
+     Returns a dataframe.(
 
      """
 
@@ -142,7 +121,9 @@ def get_collection_cleaned(coll_name, db,
             'subscribers',
             'shortformFeedId',
             'signUpReCaptchaRating',
-            'reviewedByUserId'
+            'reviewedByUserId',
+            'hideWalledGardenUI',
+            'walledGardenInvite'
         ],
         'votes': [
             'afPower',
@@ -171,6 +152,51 @@ def get_collection_cleaned(coll_name, db,
             'properties',
             'createdAt',
             'schema'
+        ],
+        'tags': [
+            'createdAt',
+            '_id',
+            'name',
+            'userId',
+            'wikiGrade',
+            'description',
+            'slug',
+            'oldSlugs',
+            'deleted',
+            'postCount',
+            'description_latest',
+            'adminOnly',
+            'core',
+            'suggestedAsFilter',
+            'defaultOrder',
+            'promoted'
+        ],
+        'tagrels': [
+            'createdAt',
+            '_id',
+            'tagId',
+            'postId',
+            'userId',
+            'baseScore',
+            'score',
+            'inactive',
+            'voteCount',
+            'afBaseScore',
+            'deleted'
+        ],
+        'sequences': [
+            '_id',
+            'userId',
+            'title',
+            'createdAt',
+            'draft',
+            'isDeleted',
+            'hidden',
+            'schemaVersion',
+            'description',
+            'htmlDescription',
+            'plaintextDescription',
+            'contents'
         ]
     }
 
@@ -180,7 +206,10 @@ def get_collection_cleaned(coll_name, db,
         'votes': clean_raw_votes,
         'views': clean_raw_views,
         'comments': clean_raw_comments,
-        'logins': clean_raw_logins
+        'logins': clean_raw_logins,
+        'tags': clean_raw_tags,
+        'tagrels': clean_raw_tagrels,
+        'sequences': clean_raw_sequences
     }
 
     query_filters = {'logins': {'name': 'login'}, 'views': {'name': 'post-view'}}
@@ -206,23 +235,11 @@ def get_collection_cleaned(coll_name, db,
 
     cleaned_collection_df = cleaning_functions[coll_name](raw_collection_df)
 
-    # if io_config is not None:
-    #
-    #     if functions_and_filters[coll_name][1] is not None:
-    #         if functions_and_filters[coll_name][1]['name'] == 'post-view':
-    #             coll_name = 'views'  # haven't figured out a more elegant way to do this
-    #
-    #     write_collection(
-    #         coll_name=coll_name,
-    #         coll_df=df,
-    #         io_config=io_config
-    #     )
-
     return cleaned_collection_df
 
 
 @timed
-def get_collections_cleaned(coll_names=('comments', 'views', 'votes', 'posts', 'users'), limit=None):
+def get_collections_cleaned(coll_names=('comments', 'views', 'votes', 'posts', 'users', 'tags', 'tagrels', 'sequences'), limit=None):
     """
     For all collections in argument, downloads and cleans them.
     Returns a dict of dataframes.
@@ -276,20 +293,25 @@ def clean_up_old_files(days_to_keep=1):
     return [shutil.rmtree(folder) for folder in date_folders[days_to_keep:]]
 
 @timed
-def load_from_file(date_str, coll_names=('votes', 'views', 'comments', 'posts', 'users')):
+def load_from_file(date_str, coll_names=('votes', 'views', 'comments', 'posts', 'users', 'tags', 'tagrels', 'sequences')):
     """Loads database collections from csvs to dataframes, ensures datetimes load correctly."""
 
     @timed
     def read_csv(coll_name):
 
+        if coll_name in read_dtypes_arg:
+            dtypes = read_dtypes_arg[coll_name]
+        else:
+            dtypes = None
+
         print_and_log('Reading {}'.format(coll_name))
-        df = pd.read_csv(complete_path_to_file(coll_name), dtype=read_dtypes_arg[coll_name])
+        df = pd.read_csv(complete_path_to_file(coll_name), dtype=dtypes)
 
         # read in all datetime types correctly
         for dt_col in ['postedAt', 'createdAt', 'votedAt', 'startTime', 'endTime',
                        'earliest_comment', 'most_recent_comment', 'earliest_vote', 'most_recent_vote',
                        'most_recent_post', 'earliest_post', 'most_recent_activity', 'earliest_activity',
-                       'true_earliest', 'curatedAt', 'earliest_view'
+                       'true_earliest', 'curatedAt', 'earliest_view', 'birth'
                        ]:
             if dt_col in df.columns:
                 df.loc[:, dt_col] = pd.to_datetime(df[dt_col])
@@ -307,7 +329,10 @@ def load_from_file(date_str, coll_names=('votes', 'views', 'comments', 'posts', 
         'posts': None,
         'comments': None,
         'votes': {'collectionName': 'category', 'voteType': 'category', 'afPower': 'int8', 'power': 'int8'},
-        'views': None
+        'views': None,
+        'sequences': None,
+        'tags': None,
+        'tagrels': None
     }
 
     print_and_log("Files to be loaded:")
@@ -380,7 +405,7 @@ def clean_raw_users(users):
     users.loc[:, 'afKarma'] = users['afKarma'].fillna(0)
     for col in ['postCount', 'commentCount', 'frontpagePostCount', 'karma', 'legacyKarma']:
         users.loc[:, col] = users.loc[:, col].fillna(0).astype(int)
-    for col in ['deleted', 'legacy', 'banned']:
+    for col in ['deleted', 'legacy', 'banned', 'hideWalledGardenUI', 'walledGardenInvite']:
         users.loc[:, col] = users.loc[:, col].fillna(False).astype(bool)
 
     return users
@@ -394,8 +419,6 @@ def clean_raw_votes(votes):
 
     votes.loc[:, 'cancelled'] = votes['cancelled'].fillna(False).astype(bool)
     votes.loc[:, 'isUnvote'] = votes['isUnvote'].fillna(False).astype(bool)
-    votes = votes.loc[~votes['cancelled'], :]
-
     votes.loc[:, 'afPower'] = votes['afPower'].fillna(0).astype('int8')
     votes.loc[:, 'collectionName'] = votes['collectionName'].astype('category')
     votes.loc[:, 'legacy'] = votes['legacy'].fillna(False).astype(bool)
@@ -427,6 +450,33 @@ def clean_raw_logins(logins_df):
     logins_parsed.loc[:, 'type'] = logins_parsed['properties'].str['type']
 
     return logins_parsed
+
+
+def clean_raw_tags(tags_df):
+
+    tags_parsed = tags_df
+
+    tags_parsed.loc[:, 'defaultOrder'] = tags_parsed.loc[:,'defaultOrder'].fillna(0)
+    for col in ['deleted', 'adminOnly', 'core', 'suggestedAsFilter', 'promoted']:
+        tags_parsed.loc[:, col] = tags_parsed.loc[:, col].fillna(False).astype(bool)
+
+    return tags_parsed
+
+
+def clean_raw_tagrels(tagrels_df):
+
+    tagrels_parsed = tagrels_df
+    for col in ['deleted', 'inactive']:
+        tagrels_parsed.loc[:, col] = tagrels_parsed.loc[:, col].fillna(False).astype(bool)
+
+    return tagrels_parsed
+
+def clean_raw_sequences(sequences_df):
+    sequences_parsed = sequences_df
+    for col in ['draft', 'isDeleted', 'hidden']:
+        sequences_parsed.loc[:, col] = sequences_parsed.loc[:, col].fillna(False).astype(bool)
+
+    return sequences_parsed
 
 
 def calculate_vote_stats_for_content(colls_dfs):
@@ -701,8 +751,33 @@ def enrich_users(colls_dfs, date_str):
     return users
 
 
+def enrich_tagrels(colls_dfs):
+    posts = colls_dfs['posts']
+    users = colls_dfs['users']
+    tags = colls_dfs['tags']
+    tagrels = colls_dfs['tagrels']
+
+    tagrels = (tagrels
+               .merge(tags.set_index('_id')[['name']], left_on='tagId', right_index=True)
+               .merge(posts.set_index('_id')[['title', 'userId', 'baseScore']], left_on='postId', right_index=True, suffixes=['', '_post'], how='left')
+               .merge(users.set_index('_id')[['displayName']], left_on='userId_post', right_index=True)
+               .rename({'displayName': 'author'}, axis=1)
+               )
+
+
+    tagrels.loc[:,'voteCount'] = tagrels.loc[:,'voteCount'].fillna(0).astype(int)
+    tagrels.loc[:,'afBaseScore'] = tagrels.loc[:,'afBaseScore'].fillna(0).astype(int)
+    tagrels.loc[:,'baseScore_post'] = tagrels.loc[:,'baseScore_post'].fillna(0).astype(int)
+
+
+    return tagrels
+
+
 @timed
-def enrich_collections(colls_dfs, date_str):  # dict[str:df] -> dict[str:df]
+def enrich_collections(colls_dfs,
+                       date_str,
+                      coll_names=('comments', 'views', 'votes', 'posts', 'users', 'tags', 'tagrels', 'sequences'),
+                       ):  # (dict[str:df], str, list[str]) -> dict[str:df]
     """Single function for collectively enriching all collection dataframes.
 
     Input: dictionary of basic-parsed collection dataframes.
@@ -710,20 +785,32 @@ def enrich_collections(colls_dfs, date_str):  # dict[str:df] -> dict[str:df]
 
     """
 
-    enriched_dfs = {
-        'users': enrich_users(colls_dfs, date_str=date_str),
-        'posts': enrich_posts(colls_dfs),
-        'comments': enrich_comments(colls_dfs),
-        'votes': colls_dfs['votes'],
-        'views': colls_dfs['views']
-    }
+    enriched_dfs = {}
+
+    if 'users' in coll_names:
+        enriched_dfs['users'] = enrich_users(colls_dfs, date_str=date_str)
+    if 'posts' in coll_names:
+        enriched_dfs['posts'] = enrich_posts(colls_dfs)
+    if 'comments' in coll_names:
+        enriched_dfs['comments'] = enrich_comments(colls_dfs)
+    if 'votes' in coll_names:
+        enriched_dfs['votes'] = colls_dfs['votes']
+    if 'views' in coll_names:
+        enriched_dfs['views'] = colls_dfs['views']
+    if 'tags' in coll_names:
+        enriched_dfs['tags'] = colls_dfs['tags']
+    if 'tagrels' in coll_names:
+        enriched_dfs['tagrels'] = enrich_tagrels(colls_dfs)
+    if 'sequences' in coll_names:
+        enriched_dfs['sequences'] = colls_dfs['sequences']
 
     return enriched_dfs
 
 
 @timed
-def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsheets=True,
-                      metrics=True, postgres=True, limit=None):
+def run_core_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsheets=True,
+                      metrics=True, postgres=True, tags=True, ga=True, urls=True,
+                      gather_town=True, limit=None):
     # ##1. LOAD DATA
     if from_file:
         dfs_enriched = load_from_file(date_str)
@@ -735,24 +822,41 @@ def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
         # ##3. WRITE OUT ENRICHED COLLECTIONS
         write_collections(dfs_enriched, date_str=today)
 
-    # ##4 METRIC STUFF - PLOTS AND SHEETS
+    # ##2 METRIC STUFF - PLOTS AND SHEETS
     if metrics:
         run_metric_pipeline(dfs_enriched, date_str, online=True, sheets=True, plots=True)
 
-    # ##5. PLOT GRAPHS TO PLOTLY DASHBOARD
+    # ##3. PLOT GRAPHS TO PLOTLY DASHBOARD
     if plotly:
         start_date = (pd.to_datetime(date_str) - pd.Timedelta(180, unit='d')).strftime('%Y-%m-%d')
-        run_plotline(dfs_enriched, start_date=start_date, size=(700, 350), pr='W', ma=4, online=True)
+        run_plotline(dfs_enriched, start_date=start_date, size=(700, 350), pr='D', ma=[1, 28], online=True,
+                      widths={1: 0.75, 7: 1.5, 28: 3}, hidden_by_default=[7])
 
-    # ##6. PLOT GRAPHS TO PLOTLY DASHBOARD
+    # ##4. PLOT GRAPHS TO PLOTLY DASHBOARD
     if gsheets:
         create_and_update_all_sheets(dfs_enriched, spreadsheet_name=get_config_field('GSHEETS', 'spreadsheet_name'))
 
-    # ##7. LOAD DATA FILES TO POSTGRES DB
+    # ##5. LOAD DATA FILES TO POSTGRES DB
     if postgres:
-        run_pg_pandas_transfer(dfs_enriched, date_str=date_str)
+        run_pg_pandas_transfer(dfs_enriched)
 
-    # ##8. CLEAN UP OLD FILES TO SAVE SPACE
+    # ##6. RUN TAGS PIPELINE
+    if tags:
+        run_tag_pipeline(dfs_enriched)
+
+    # ##7. GOOGLE ANALYTICS PIPELINE
+    if ga:
+        run_ga_pipeline()
+
+    # ##8. URLS TABLE UPDATE
+    if urls:
+        run_url_table_update(dfs_enriched)
+
+    # ##9. GATHER TOWN
+    if gather_town:
+        run_gather_town_pipeline()
+
+    # ##10. CLEAN UP OLD FILES TO SAVE SPACE
     if clean_up:
         clean_up_old_files(days_to_keep=2)
 
@@ -760,11 +864,15 @@ def run_etlw_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
 
 
 if __name__ == '__main__':
-    run_etlw_pipeline(
+    run_core_pipeline(
                       date_str=pd.datetime.today().strftime('%Y%m%d'),
                       plotly=True,
                       gsheets=True,
                       metrics=True,
                       postgres=True,
+                      tags=False,
+                      ga=True,
+                      urls=True,
+                      gather_town=True,
                       clean_up=True
                       )

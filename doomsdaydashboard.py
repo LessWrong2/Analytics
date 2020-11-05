@@ -1,5 +1,5 @@
 import pandas as pd
-import etlw as et
+import core_pipeline as et
 from utils import get_config_field
 import plotly
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
@@ -9,7 +9,7 @@ plotly.tools.set_credentials_file(username=get_config_field('PLOTLY', 'username'
                                       api_key=get_config_field('PLOTLY', 'api_key'))
 init_notebook_mode(connected=True)
 
-from losttheplotly import plot_table
+from plotly_ops import plot_table
 
 
 def update_petrov():

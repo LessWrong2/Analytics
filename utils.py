@@ -3,10 +3,43 @@ import numpy as np
 import datetime
 import pytz
 import logging
+
 from functools import wraps
 import configparser
 from multiprocessing import cpu_count, Pool
 from selectolax.parser import HTMLParser
+
+from pymongo import MongoClient
+from pymongo.read_preferences import ReadPreference
+
+
+
+def get_mongo_db_object():
+    MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
+    MONGO_DB_URL = get_config_field('MONGODB', 'prod_db_url')
+    client = MongoClient(MONGO_DB_URL, read_preference=ReadPreference.SECONDARY)
+    db = client[MONGO_DB_NAME]
+    return db
+
+
+def get_collection(coll_name, db, projection=None, query_filter=None, limit=None):
+    """
+    Downloads and returns single collection from MongoDB and returns dataframe.
+
+    Optional query filter can be applied (useful for downloading logins post-views from events table.
+    Returns a dataframe.
+    """
+
+    kwargs = {} # necessary because pymongo function doesn't accept limit=None
+    if limit:
+        kwargs.update({'limit':limit})
+
+    print_and_log('{} download started at {}. . .'.format(coll_name, datetime.datetime.today()))
+    coll_list = db[coll_name].find(query_filter, projection=projection, **kwargs)
+    coll_df = pd.DataFrame(list(coll_list))
+    print_and_log('{} download completed at {}!'.format(coll_name, datetime.datetime.today()))
+
+    return coll_df
 
 
 def get_config_field(section, field):
@@ -29,8 +62,8 @@ def timed(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        def get_local_time(tz='US/Pacific'):
-            return datetime.datetime.now(pytz.timezone('US/Pacific'))
+        def get_local_time(tz='UTC'):
+            return datetime.datetime.now(pytz.timezone(tz))
 
         start = get_local_time()
         print_and_log('{} started at {}'.format(func.__name__, start.strftime('%Y-%m-%d %H:%M:%S')))
@@ -105,12 +138,13 @@ def get_valid_votes(dfs):
     dfv = dfs['votes']
 
     # removes self-votes
-    a = dfv[~dfv['cancelled']].merge(dfp[['_id', 'userId']], left_on='documentId', right_on='_id',
-                                     suffixes=['', '_post'], how='left')
+    a = (dfv[(~dfv['cancelled'])&(dfv['collectionName'].isin(['Posts', 'Comments']))]
+         .merge(dfp[['_id', 'userId']], left_on='documentId', right_on='_id', suffixes=['', '_post'], how='left'))
     b = a.merge(dfc[['_id', 'userId']], left_on='documentId', right_on='_id', suffixes=['', '_comment'], how='left')
     b['userId_document'] = b['userId_comment'].fillna(b['userId_post'])
     b['self_vote'] = b['userId'] == b['userId_document']
     b = b[b['userId'].isin(get_valid_users(dfs, required_minimum_posts_views=None)['_id'])]
+
 
     return b[~b['self_vote']]
 

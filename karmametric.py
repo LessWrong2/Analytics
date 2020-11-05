@@ -18,9 +18,11 @@ def filtered_and_enriched_votes(dfs):
     excluded_posts = dfp[(dfp['status'] != 2) | dfp['authorIsUnreviewed'] | dfp['draft']]['_id']
     lw_team = dfu[dfu['username'].isin(['Benito', 'habryka4', 'Raemon', 'jimrandomh', 'Ruby'])]['_id']
 
-    dfvv = dfv[(~dfv['userId'].isin(lw_team)) & (~dfv['documentId'].isin(excluded_posts)) & (
-        ~dfv['cancelled']) & (
-                   ~dfv['documentId'].isin(dfc[dfc['deleted']]['_id']))].copy()  # dfvv: filtered votes column
+    dfvv = dfv[(~dfv['userId'].isin(lw_team)) & (~dfv['documentId'].isin(excluded_posts))
+                & (dfv['collectionName'].isin(['Posts', 'Comments'])
+                & ~dfv['cancelled'])
+                & (~dfv['documentId'].isin(dfc[dfc['deleted']]['_id']))
+    ].copy()  # dfvv: filtered votes column
     dfvv['downvote'] = dfvv['power'] < 0  # create boolean column for later convenience
 
     dfvv.loc[:, 'power_d4'] = dfvv['power'].copy()  # create a copy of the power (karma) column

@@ -4,7 +4,7 @@ from utils import timed, get_config_field
 
 
 def upload_to_gsheets(df, spreadsheet_name, sheet_name, create_spread=False, create_sheet=False, grant_access=None,
-                      index=False, format_columns=False):
+                      index=False, format_columns=False, start=(1,1), headers=True):
 
     df = df.copy()
 
@@ -13,7 +13,7 @@ def upload_to_gsheets(df, spreadsheet_name, sheet_name, create_spread=False, cre
 
     spreadsheet = Spread(spread=spreadsheet_name, sheet=sheet_name, create_spread=create_spread,
                          create_sheet=create_sheet, user=get_config_field('GSHEETS', 'user'))
-    spreadsheet.df_to_sheet(df, index=index)
+    spreadsheet.df_to_sheet(df, index=index, start=start, headers=headers)
 
     if grant_access == 'primary':
         permissions_list = ['{email}|writer'.format(email=get_config_field('GSHEETS', 'primary_email'))]
@@ -32,20 +32,22 @@ def upload_to_gsheets(df, spreadsheet_name, sheet_name, create_spread=False, cre
     return spreadsheet.url
 
 
-def create_and_update_user_sheet(dfu, spreadsheet, limit=None):
+def create_and_update_user_sheet(users, spreadsheet, limit=None):
     # data = dfu[~dfu['banned']].sort_values('karma', ascending=False) //old
-    data = dfu[(dfu['karma'] > 0) | (dfu['num_distinct_posts_viewed'] > 0) | (dfu['signUpReCaptchaRating'] >= 0.7)]
+    data = users[(users['karma'] > 0) | (users['num_distinct_posts_viewed'] > 0) | (users['signUpReCaptchaRating'] >= 0.7)]
     data.loc[data['days_since_active'] <= 0, 'days_since_active'] = 0
     data['username'] = '=HYPERLINK("www.lesswrong.com/users/'.lower() + data['username'] + '", "' + data[
         'username'] + '")'
 
     data['birth'] = pd.datetime.now()
     #     data['most_recent_activity'] = data['most_recent_activity'].dt.date
+    data = data.sort_values('most_recent_activity', ascending=False).head(49990)
 
     user_cols = [
         'birth',
         '_id',
         'username',
+        'email',
         'karma',
         'days_since_active',
         'most_recent_activity',
@@ -58,6 +60,8 @@ def create_and_update_user_sheet(dfu, spreadsheet, limit=None):
         'num_votes_last_180_days',
         'num_comments_last_180_days',
         'num_posts_last_180_days',
+        'walledGardenInvite',
+        'hideWalledGardenUI',
     ]
 
     # recent_count_cols = [ # test removal since trying fix upstream

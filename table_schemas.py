@@ -49,6 +49,8 @@ table_creation_commands = {
         num_votes_last_180_days                 numeric,
         num_views_last_180_days                 numeric,
         num_distinct_posts_viewed_last_180_days numeric,
+        walled_garden_invite                    boolean,
+        hide_walled_garden_ui                   boolean,
         bio                                     text,
         email                                   text,
         birth                                   timestamp
@@ -166,5 +168,162 @@ table_creation_commands = {
     is_desktop          boolean,
     is_bot              boolean,
     birth               timestamp
+);""",
+    'tags': """CREATE TABLE tags
+(
+    created_at         timestamp,
+    _id               varchar(64) PRIMARY KEY,
+    name              text,
+    slug              text,
+    deleted           boolean,
+    post_count         smallint,
+    admin_only         boolean,
+    core              boolean,
+    suggested_as_filter boolean,
+    default_order      numeric,
+    promoted          boolean,
+    birth               timestamp
+);""",
+    'tagrels': """CREATE TABLE tagrels
+(
+    created_at         timestamp,
+    _id               varchar(64) PRIMARY KEY,
+    tag_id               varchar(64), 
+    post_id               varchar(64),
+    user_id               varchar(64),
+    base_score      smallint,
+    score           smallint,
+    inactive        boolean,
+    vote_count      smallint,
+    af_base_score   smallint,
+    deleted         boolean,
+    name            text,
+    title           text,
+    user_id_post    varchar(64),
+    author          text,
+    base_score_post    smallint,       
+    birth               timestamp
+);""",
+    'sequences': """CREATE TABLE sequences
+(
+    _id               varchar(64) PRIMARY KEY,
+    user_id           varchar(64),
+    title             text,
+    created_at         timestamp,
+    draft             boolean,
+    is_deleted         boolean,
+    hidden             boolean,
+    schema_version     smallint,
+    plaintext_description text,
+    birth       timestamp
+);""",
+    'urls': """CREATE TABLE urls
+(
+    url              text,
+    type        varchar(32),
+    title            text,
+    author           text,
+    document_id  varchar(64),
+    url_hash    varchar(32) PRIMARY KEY,
+    birth       timestamp
+);""",
+    'ga_traffic': """CREATE TABLE ga_traffic
+(
+    date                    timestamp,
+    ga_users                int,
+    ga_sessions             int,
+    ga_pageviews            int,
+    ga_unique_pageviews     int,
+    ga_pageviews_per_session numeric,
+    birth                   timestamp
+);""",
+    'ga_source': """CREATE TABLE ga_source
+(
+    date                    timestamp,
+    source_agg              text,
+    ga_source               text,
+    ga_users                int,
+    ga_sessions             int,
+    birth                   timestamp
+);""",
+    'ga_referrer': """CREATE TABLE ga_referrer
+(
+    date                    timestamp,
+    referrer_agg            text,
+    ga_full_referrer        text,
+    ga_users                int,
+    ga_sessions             int,
+    birth                   timestamp
+);""",
+    'ga_devices': """CREATE TABLE ga_devices
+(
+    date                timestamp,
+    ga_device_category  varchar(32),
+    ga_users            int,
+    ga_sessions         int,
+    ga_pageviews        int,
+    ga_unique_pageviews  int,
+    birth               timestamp
+);""",
+    'ga_pages': """CREATE TABLE ga_pages
+(
+    date                    timestamp,
+    page_agg                text,
+    ga_page_path            text,
+    ga_users                int,
+    ga_sessions             int,
+    ga_pageviews            int,
+    ga_unique_pageviews      int,
+    ga_avg_time_on_page     numeric,
+    ga_avg_page_load_time   numeric,
+    birth                   timestamp
+);""",
+                   'gather_town_checks': """CREATE TABLE gather_town_checks
+(
+  timestamp         timestamp,
+  name              varchar(64),
+  busy              int,
+  audio             boolean,
+  video             boolean,
+  blocked           text,
+  elapsed_min       numeric,
+  first_visit       boolean,
+  new_session       boolean,
+  session_no        int,
+  lw_team           boolean,
+  birth             timestamp
+);""",
+    'gather_town_sessions': """CREATE TABLE gather_town_sessions
+(
+  name              varchar(64),
+  session_no        int,
+  num_checks        int,
+  max_gap           numeric,
+  start_time        timestamp,
+  end_time          timestamp,
+  first_visit       boolean,
+  lw_team           boolean,
+  approx_duration   numeric,
+  alone_at_start    boolean,
+  alone_at_end      boolean,
+  percent_accompanied numeric,
+  concurrent_visitors   text,
+  birth             timestamp
+);""",
+    'gather_town_users': """CREATE TABLE gather_town_users
+(
+  name              varchar(64),
+  num_sessions          int,
+  num_checks            int,
+  num_distinct_days     int,
+  first_seen            timestamp,
+  last_seen             timestamp,
+  total_approx_duration numeric,
+  mean_session_length   numeric,
+  median_session_length numeric,
+  max_session_length   numeric,
+  min_session_length   numeric,
+  lw_team               boolean,
+  birth                 timestamp
 );"""
 }
