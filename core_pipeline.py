@@ -41,7 +41,7 @@ def get_collection_cleaned(coll_name, db,
 
      Optionally writes to file based on io_config argument bundle.
 
-     Returns a dataframe.(
+     Returns a dataframe.
 
      """
 

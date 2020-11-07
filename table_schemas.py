@@ -281,6 +281,7 @@ table_creation_commands = {
                    'gather_town_checks': """CREATE TABLE gather_town_checks
 (
   timestamp         timestamp,
+  player_id         text,
   name              varchar(64),
   busy              int,
   audio             boolean,
@@ -295,6 +296,7 @@ table_creation_commands = {
 );""",
     'gather_town_sessions': """CREATE TABLE gather_town_sessions
 (
+  player_id         text,
   name              varchar(64),
   session_no        int,
   num_checks        int,
@@ -312,7 +314,8 @@ table_creation_commands = {
 );""",
     'gather_town_users': """CREATE TABLE gather_town_users
 (
-  name              varchar(64),
+  player_id             text,
+  name                  varchar(64),
   num_sessions          int,
   num_checks            int,
   num_distinct_days     int,
