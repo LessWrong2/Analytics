@@ -4,6 +4,70 @@ from utils import get_collection, get_mongo_db_object
 from postgres_ops import get_pg_engine, truncate_or_drop_tables, bulk_upload_to_pg
 from utils import timed
 
+TEAM_NAMES = ['Raemon', 'Habryka', 'Ruby', 'Ben Pace', 'jimrandomh', 'Jacob', '(LW)', '(LessWrong)']
+
+BAD_NAMES = [
+    'Alex -- Gather',
+    'Alex Turner (CHAI',
+    'Alex Turner (CHAI*',
+    'Alex Turner (CHAI* ',
+    'Alex Turner (CHAI*(',
+    'Alex Turner (CHAI*)',
+    'Chr',
+    'Dai',
+    'Da',
+    'Joa',
+    'Joann',
+    'Mat',
+    'Matth',
+    'Matthe',
+    'Matthew ',
+    'Matthew G',
+    'Matthew Ge',
+    'Matthr',
+    'Matthre',
+    'Ra',
+    'Rae',
+    'Raem',
+    'Raemo',
+    'Raemon ',
+    'Raemon (',
+    'Raemon (W',
+    'Raemon (We',
+    'Raemon (We	',
+    'Raemon (Wel',
+    'Raemon (Welc',
+    'Raemon (Welco',
+    'Raemon (Welcom',
+    'Raemon (Welcomi',
+    'Raemon (Welcomin',
+    'Raemon (Welcoming',
+    'Ri',
+    'Ric',
+    'Rick Korzekwa (AI I',
+    'Rick Korzekwa (AI Im',
+    'Rick Korzekwa (AI Imp',
+    'Rick Korzekwa (AI Impa',
+    'Rick Korzekwa (AI Impac',
+    'Rick Korzekwa (AI Impact',
+    'Rick Korzekwa (AI Impacts',
+    'Ro',
+    'Rob '
+    'Rob M',
+    'Rob Mi',
+    'Rob Mil',
+    'rrrrrrrrrrrrrrrrrrrrrrrrrrrrrr',
+    'Scott (',
+    'Scott (M',
+    'Scott (MI',
+    'Scott (MIR',
+    'Scott (MIRI',
+    'Nate [Gather]',
+    'Habryka D',
+    'Habryka De',
+    'Zv'
+]
+
 
 def get_raw_gt_data():
     gt_raw = get_collection('lwevents', query_filter={"name": "gatherTownUsersCheck"}, db=get_mongo_db_object())
@@ -29,28 +93,34 @@ def generate_checks_table(gt_raw):
           .reset_index(drop=True)
           )
 
+    print(checks.shape)
+    checks = checks[~checks['name'].isin(BAD_NAMES)]
+    print(checks.shape)
     checks['timestamp'] = checks['timestamp'] - pd.Timedelta('7 hours')
-    checks['elapsed_min'] = checks.groupby('name')['timestamp'].diff(1).dt.total_seconds().div(60).round(2)
+
+    # fancy fixup of before time id-less to now with id's
+    checks = checks.rename(columns={'playerId': 'player_id'})
+    name_id_mapping = checks[['player_id', 'name']].dropna().drop_duplicates()
+    checks = checks.merge(name_id_mapping, on='name', how='left', suffixes=['', '_joined'])
+    checks['player_id'] = checks['player_id'].fillna(checks['player_id_joined']).fillna('missing_' + checks['name'])  # preserves backwards compatibility with change
+    checks['name'] = checks['name'].fillna(checks['player_id']) # helps with anonymous users
+
+
+    checks['elapsed_min'] = checks.groupby('player_id')['timestamp'].diff(1).dt.total_seconds().div(60).round(2)
     checks['first_visit'] = False
     checks.loc[checks['elapsed_min'].isnull(), 'first_visit'] = True
 
     checks['new_session'] = False
     checks.loc[checks['elapsed_min'] > 30, 'new_session'] = True
-    checks['session_no'] = checks.groupby('name')['new_session'].cumsum().fillna(0).astype(int)
+    checks['session_no'] = checks.groupby('player_id')['new_session'].cumsum().fillna(0).astype(int)
 
     checks['busy'] = checks['busy'].fillna(0).astype(int)
-    # checks['name'] = checks['name'].fillna('Anonymous')
-    checks['player_id'] = checks['playerId'].fillna( 'missing_' + checks['name']) #preserves backwards compatibility with change
 
     checks['x_coord'] = checks['location'].str['x']
     checks['y_coord'] = checks['location'].str['y']
     checks['map'] = checks['location'].str['map']
 
-    checks['lw_team'] = checks['name'].isin(['Raemon', 'Habryka', 'Ruby', 'Ben Pace', 'jimrandomh'])
-
-
-    #fancy fixup of before time id-less to now with id's
-
+    checks['lw_team'] = checks['name'].fillna('missing').apply(lambda name: np.any([team_name in name for team_name in TEAM_NAMES]))
 
 
     for col in ['audio', 'video', 'blocked']:
