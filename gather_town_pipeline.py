@@ -93,9 +93,7 @@ def generate_checks_table(gt_raw):
           .reset_index(drop=True)
           )
 
-    print(checks.shape)
     checks = checks[~checks['name'].isin(BAD_NAMES)]
-    print(checks.shape)
     checks['timestamp'] = checks['timestamp'] - pd.Timedelta('7 hours')
 
     # fancy fixup of before time id-less to now with id's
@@ -105,7 +103,7 @@ def generate_checks_table(gt_raw):
     checks['player_id'] = checks['player_id'].fillna(checks['player_id_joined']).fillna('missing_' + checks['name'])  # preserves backwards compatibility with change
     checks['name'] = checks['name'].fillna(checks['player_id']) # helps with anonymous users
 
-
+    checks = checks.sort_values(['player_id', 'timestamp'])
     checks['elapsed_min'] = checks.groupby('player_id')['timestamp'].diff(1).dt.total_seconds().div(60).round(2)
     checks['first_visit'] = False
     checks.loc[checks['elapsed_min'].isnull(), 'first_visit'] = True
