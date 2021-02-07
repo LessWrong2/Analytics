@@ -216,6 +216,6 @@ def run_ga_pipeline():
                                                  ga_metrics_gsheets['pages']['ga:pagePath'] + '", "' + \
                                                  ga_metrics_gsheets['pages']['ga:pagePath'] + '")'
 
-    [ga_gsheets_upload(df, name) for name, df in ga_metrics.items()]
+    # [ga_gsheets_upload(df, name) for name, df in ga_metrics.items()]
 
 
