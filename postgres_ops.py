@@ -284,6 +284,8 @@ def create_tables(tables, conn=None):
 @timed
 def bulk_upload_to_pg(df, table_name, conn=None, clean_text=True):
 
+    print_and_log('Upload {}'.format(table_name))
+  
     df = df.copy()
     df.loc[:,'birth'] = pd.datetime.now()
     df.columns = df.columns.to_series().apply(camel_to_snake)
@@ -310,7 +312,7 @@ def bulk_upload_to_pg(df, table_name, conn=None, clean_text=True):
 
 @timed
 def run_pg_pandas_transfer(dfs,
-                          tables = ('users', 'posts', 'comments', 'votes', 'views', 'tags', 'tagrels'),
+                          tables = ('users', 'posts', 'comments', 'votes', 'tags', 'tagrels'),
                           drop_tables=False,
                            ):
 

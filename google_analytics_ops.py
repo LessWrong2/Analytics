@@ -1,7 +1,6 @@
 import copy
 import pandas as pd
 from utils import get_config_field, timed, print_and_log
-from google_sheet_ops import upload_to_gsheets
 
 from googleapiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
@@ -215,7 +214,4 @@ def run_ga_pipeline():
     ga_metrics_gsheets['pages']['ga:pagePath'] = '=HYPERLINK("www.lesswrong.com' + \
                                                  ga_metrics_gsheets['pages']['ga:pagePath'] + '", "' + \
                                                  ga_metrics_gsheets['pages']['ga:pagePath'] + '")'
-
-    # [ga_gsheets_upload(df, name) for name, df in ga_metrics.items()]
-
 
