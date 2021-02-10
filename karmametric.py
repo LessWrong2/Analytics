@@ -5,38 +5,37 @@ import chart_studio.plotly.plotly as py
 import plotly.graph_objs as go
 from plotly.offline import init_notebook_mode, iplot
 from gspread_pandas import Spread
-from utils import timed, get_config_field
+from utils import timed, get_config_field, get_lw_team
 
 
 def filtered_and_enriched_votes(dfs):
-    dfu = dfs['users']
-    dfp = dfs['posts']
-    dfc = dfs['comments']
-    dfv = dfs['votes']
+    users = dfs['users']
+    posts = dfs['posts']
+    comments = dfs['comments']
+    votes_raw = dfs['votes']
 
-    GP2_id = 'pgoCXxuzpkPXADTp2'
-    excluded_posts = dfp[(dfp['status'] != 2) | dfp['authorIsUnreviewed'] | dfp['draft']]['_id']
-    lw_team = dfu[dfu['username'].isin(['Benito', 'habryka4', 'Raemon', 'jimrandomh', 'Ruby'])]['_id']
+    excluded_posts = posts[(posts['status'] != 2) | posts['authorIsUnreviewed'] | posts['draft']]['_id']
+    lw_team = get_lw_team(users)
 
-    dfvv = dfv[(~dfv['userId'].isin(lw_team)) & (~dfv['documentId'].isin(excluded_posts))
-                & (dfv['collectionName'].isin(['Posts', 'Comments'])
-                & ~dfv['cancelled'])
-                & (~dfv['documentId'].isin(dfc[dfc['deleted']]['_id']))
-    ].copy()  # dfvv: filtered votes column
-    dfvv['downvote'] = dfvv['power'] < 0  # create boolean column for later convenience
+    votes_processed = votes_raw[(~votes_raw['userId'].isin(lw_team)) & (~votes_raw['documentId'].isin(excluded_posts))
+                & (votes_raw['collectionName'].isin(['Posts', 'Comments'])
+                & ~votes_raw['cancelled'])
+                & (~votes_raw['documentId'].isin(comments[comments['deleted']]['_id']))
+    ].copy()  # votes_processed: filtered votes column
+    votes_processed['downvote'] = votes_processed['power'] < 0  # create boolean column for later convenience
 
-    dfvv.loc[:, 'power_d4'] = dfvv['power'].copy()  # create a copy of the power (karma) column
-    dfvv.loc[dfvv['power'] < 0, 'power_d4'] = dfvv.loc[dfvv[
+    votes_processed.loc[:, 'power_d4'] = votes_processed['power'].copy()  # create a copy of the power (karma) column
+    votes_processed.loc[votes_processed['power'] < 0, 'power_d4'] = votes_processed.loc[votes_processed[
                                                            'power'] < 0, 'power'] * 4  # multiply all rows with negative power by 4
 
-    dfvv = dfvv.sort_values('votedAt')
-    dfvv['voteId'] = (
-            dfvv['documentId'] + dfvv['userId'] + dfvv['voteType'].astype(str) +
-            dfvv['votedAt'].astype(int).astype('str')
+    votes_processed = votes_processed.sort_values('votedAt')
+    votes_processed['voteId'] = (
+            votes_processed['documentId'] + votes_processed['userId'] + votes_processed['voteType'].astype(str) +
+            votes_processed['votedAt'].astype(int).astype('str')
     ).apply(lambda x: hex(hash(x))).astype('str')
-    dfvv = dfvv.set_index(dfvv['voteId'])
+    votes_processed = votes_processed.set_index(votes_processed['voteId'])
 
-    return dfvv
+    return votes_processed
 
 
 def run_incremental_vote_algorithm(votes):

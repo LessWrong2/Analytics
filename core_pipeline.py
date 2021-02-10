@@ -15,7 +15,7 @@ from plotly_ops import run_plotline
 from google_sheet_ops import *
 from karmametric import run_metric_pipeline
 from postgres_ops import run_pg_pandas_transfer
-from nobacksies import run_tag_pipeline
+from tagging_sheet_ops import run_tag_pipeline
 from google_analytics_ops import run_ga_pipeline
 from url_grey import run_url_table_update
 from gather_town_pipeline import run_gather_town_pipeline
@@ -31,13 +31,14 @@ ENV = get_config_field('ENV', 'env')
 
 @timed
 def get_collection_cleaned(coll_name, db,
-                           limit=None):  # (name of collection, MongoDB object, read/write arg bundle) -> dataframe
+                           limit=None, views_start_date=None):  # (name of collection, MongoDB object, read/write arg bundle) -> dataframe
     """
     Downloads, *processes* and returns single collection from MongoDB.
 
      Processing retains only some columns, fills in missing values, and casts datatypes.
      Processing is performed using a custom function for each collection.
      Collection must be one of ['post', 'comments', 'users', 'votes', 'views' (lwevents with post-view filter)
+     Post-Views by default pulls last three years
 
      Optionally writes to file based on io_config argument bundle.
 
@@ -212,7 +213,12 @@ def get_collection_cleaned(coll_name, db,
         'sequences': clean_raw_sequences
     }
 
-    query_filters = {'logins': {'name': 'login'}, 'views': {'name': 'post-view'}}
+    if not views_start_date:
+        views_start_date = datetime.datetime.today() - datetime.timedelta(days=365*3)
+    if type(views_start_date) == str:
+        views_start_date = pd.datetime(views_start_date)
+
+    query_filters = {'logins': {'name': 'login'}, 'views': {'name': 'post-view', 'createdAt': {'$gte': views_start_date}}}
 
     def name_check(coll_name):
         # ugly, but how else to do it?

@@ -131,8 +131,9 @@ def run_plotline(dfs, online=False, start_date=None, end_date=None, size=(1000, 
     init_notebook_mode(connected=True)
 
     dpv = dfs['views']  # pv = post-views
-
-    valid_users = get_valid_users(dfs, required_minimum_posts_views=1)
+    
+    minimum_post_views = 1
+    valid_users = get_valid_users(dfs, required_minimum_posts_views=minimum_post_views)
     valid_posts = get_valid_posts(dfs, required_upvotes=1)
     valid_comments = get_valid_comments(dfs)
     valid_votes = get_valid_votes(dfs)
@@ -144,7 +145,7 @@ def run_plotline(dfs, online=False, start_date=None, end_date=None, size=(1000, 
                    'widths': widths, 'size': size,
                    'online': online, 'annotations': annotations, 'hidden_by_default': hidden_by_default}
 
-    timeseries_plot(title='Accounts Created, 5+ posts_viewed', datapoints=valid_users, date_col='true_earliest',
+    timeseries_plot(title='Accounts Created, {}+ posts_viewed'.format(minimum_post_views), datapoints=valid_users, date_col='true_earliest',
                     color='grey', **plotly_args)
     timeseries_plot(title='Num Logged-In Users', datapoints=dpv[dpv['userId'].isin(valid_users['_id'])],
                     date_col='createdAt', color='black', unique_on='userId', **plotly_args)
