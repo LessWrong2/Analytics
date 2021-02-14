@@ -148,7 +148,7 @@ def agg_votes_to_period(votes, start_date, period='D'):
 
     votes_items_period = (votes
         .assign(votedAt=votes['votedAt'].dt.floor(period_truncation_dict[period]))
-        .set_index('votedAt')
+        .set_index('votedAt')[start_date:]
         .groupby(['documentId', 'collectionName', 'votedAt'], observed=True)
         .agg(
             **{
@@ -210,7 +210,7 @@ def item_agg_select_columns(dd, period):
             'net_effect_for_{}'.format(PERIOD_DICT[period]), 'abs_effect_for_{}'.format(PERIOD_DICT[period]), 'rank', 'inverse_rank',
             'num_votes_{}'.format(PERIOD_DICT[period]), 'percent_downvotes_{}'.format(PERIOD_DICT[period]),
             'postedAt_post', 'num_distinct_viewers', 'num_votes_post', 'percent_downvotes_post',
-            'postedAt_comment', 'num_votes_comment', 'percent_downvotes_comment', 'title_plain'
+            'postedAt_comment', 'num_votes_comment', 'percent_downvotes_comment', 'title_plain', '_id_post', '_id_comment'
             ]
 
     return dd[cols].set_index(['votedAt', 'collectionName', 'title'])
@@ -222,7 +222,7 @@ def post_agg_select_columns(dd, period):
             'effect', 'effect_over_abs', 'cum_effect', 'cum_over_abs',
             'net_effect_for_{}'.format(PERIOD_DICT[period]), 'abs_effect_for_{}'.format(PERIOD_DICT[period]), 'rank', 'inverse_rank',
             'postedAt', 'num_distinct_viewers', 'num_comments_rederived', 'num_votes', 'percent_downvotes',
-            'title_plain'
+            'title_plain', '_id'
             ]
 
     return dd[cols].set_index(['votedAt', 'title'])
@@ -296,7 +296,7 @@ def run_metric_pipeline(collections, end_date_str, online=False, sheets=False, p
                 .copy()
                 .assign(birth=pd.datetime.now())
                 .rename(lambda x: x.replace('_', ' ').title(), axis=1)
-                .head(int(5e6/30)) # sheet can have max 5e6 cells
+                .head(int(1e4)) # we don't need that many rows by default
                 )
 
     posts = collections['posts']
@@ -323,4 +323,4 @@ def run_metric_pipeline(collections, end_date_str, online=False, sheets=False, p
             votes2items = agg_votes_to_items(allVotes, posts, comments, period=period, start_date=start_date_sheets)
 
             s.df_to_sheet(prepare_upload(votes2posts), replace=True, sheet='KM: Posts/{}'.format(PERIOD_DICT[period]), index=False)
-            s.df_to_sheet(votes2items, replace=True, sheet='KM: Items/{}'.format(PERIOD_DICT[period]), index=False)
+            s.df_to_sheet(prepare_upload(votes2items), replace=True, sheet='KM: Items/{}'.format(PERIOD_DICT[period]), index=False)

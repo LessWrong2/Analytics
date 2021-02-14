@@ -17,7 +17,7 @@ from karmametric import run_metric_pipeline
 from postgres_ops import run_pg_pandas_transfer
 from tagging_sheet_ops import run_tag_pipeline
 from google_analytics_ops import run_ga_pipeline
-from url_grey import run_url_table_update
+from url_parsing import run_url_table_update
 from gather_town_pipeline import run_gather_town_pipeline
 from utils import timed, print_and_log, get_config_field, get_valid_users, get_valid_posts, \
     get_valid_comments, get_valid_votes, get_valid_views, get_collection, get_mongo_db_object

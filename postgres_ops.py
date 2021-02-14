@@ -53,8 +53,6 @@ def prepare_users(dfu):
                       'total_posts',
                       'earliest_post',
                       'most_recent_post',
-                      'num_drafts',
-                      'percent_drafts',
                       'total_comments',
                       'earliest_comment',
                       'most_recent_comment',
@@ -84,8 +82,6 @@ def prepare_users(dfu):
 
     users = dfu.loc[:,users_sql_cols]
     users.loc[:,'afKarma'] = users['afKarma'].fillna(0).astype(int)
-    users.loc[:,'num_drafts'] = users['num_drafts'].replace(False, 0).fillna(0).astype(int)
-    users.loc[:,'percent_drafts'] = users['percent_drafts'].replace(False, 0).fillna(0)
     return users
 
 

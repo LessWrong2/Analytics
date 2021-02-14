@@ -25,8 +25,6 @@ table_creation_commands = {
         total_posts                             numeric,
         earliest_post                           timestamp,
         most_recent_post                        timestamp,
-        num_drafts                              smallint,
-        percent_drafts                          real,
         total_comments                          numeric,
         earliest_comment                        timestamp,
         most_recent_comment                     timestamp,
