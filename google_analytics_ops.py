@@ -175,7 +175,7 @@ def get_all_metrics():
 
     return ga_metrics
 
-
+@timed
 def run_ga_pipeline():
 
     ##Get Data
@@ -205,13 +205,4 @@ def run_ga_pipeline():
     finally:
         engine.dispose()
 
-
-    ## GSheets Upload
-    def ga_gsheets_upload(df, name):
-        upload_to_gsheets(df, 'LW Automatically Updating Spreadsheets', 'GA: {}'.format(name))
-
-    ga_metrics_gsheets = ga_metrics
-    ga_metrics_gsheets['pages']['ga:pagePath'] = '=HYPERLINK("www.lesswrong.com' + \
-                                                 ga_metrics_gsheets['pages']['ga:pagePath'] + '", "' + \
-                                                 ga_metrics_gsheets['pages']['ga:pagePath'] + '")'
 

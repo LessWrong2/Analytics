@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import core_pipeline as et
 import google_analytics_ops as ga
-import url_grey as url
+import url_parsing as url
 from google_sheet_ops import upload_to_gsheets
 from utils import timed
 

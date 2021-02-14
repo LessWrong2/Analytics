@@ -1,5 +1,5 @@
 import pandas as pd
-from utils import timed, htmlBody2plaintext, get_collection, get_mongo_db_object
+from utils import timed, htmlBody2plaintext, get_collection, get_mongo_db_object, get_lw_team
 from google_sheet_ops import upload_to_gsheets
 
 
@@ -78,13 +78,6 @@ def format_tags_table_for_upload(tags_table):
 
     return output
 
-
-def get_lw_team(dfu):
-    return (dfu[dfu['username']
-            .isin(['Benito', 'habryka4', 'Raemon', 'jimrandomh', 'Ruby'])]
-            .set_index('_id')['displayName']
-            .to_frame('team_member_name')
-            )
 
 
 def enrich_tag_votes(votes, users):
