@@ -7,6 +7,9 @@ from plotly.offline import init_notebook_mode, iplot
 from gspread_pandas import Spread
 from utils import timed, get_config_field, get_lw_team
 
+PERIOD_DICT = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
+PERIOD_DICT2 = {'D': 'day', 'W': 'week', 'M': 'month', 'Q': 'quarter', 'Y': 'year'}
+
 
 def filtered_and_enriched_votes(dfs):
     users = dfs['users']
@@ -15,9 +18,9 @@ def filtered_and_enriched_votes(dfs):
     votes_raw = dfs['votes']
 
     excluded_posts = posts[(posts['status'] != 2) | posts['authorIsUnreviewed'] | posts['draft']]['_id']
-    lw_team = get_lw_team(users)
+    lw_team_ids = get_lw_team(users).index
 
-    votes_processed = votes_raw[(~votes_raw['userId'].isin(lw_team)) & (~votes_raw['documentId'].isin(excluded_posts))
+    votes_processed = votes_raw[(~votes_raw['userId'].isin(lw_team_ids)) & (~votes_raw['documentId'].isin(excluded_posts))
                 & (votes_raw['collectionName'].isin(['Posts', 'Comments'])
                 & ~votes_raw['cancelled'])
                 & (~votes_raw['documentId'].isin(comments[comments['deleted']]['_id']))
@@ -101,15 +104,13 @@ def plot_karma_metric(allVotes, start_date, end_date, online=False, period='D', 
     color = 'red'
     size = (1200, 500)
 
-    period_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
-    period_dict2 = {'D': 'day', 'W': 'week', 'M': 'month', 'Q': 'quarter', 'Y': 'year'}
 
     data = [
         go.Scatter(x=votes_ts[date_col], y=votes_ts['effect'].round(1), line={'color': color, 'width': 0.5},
-                   name='{}-value'.format(period_dict[period]),
+                   name='{}-value'.format(PERIOD_DICT[period]),
                    hoverinfo='x+y+name'),
         go.Scatter(x=votes_ts_ma[date_col], y=votes_ts_ma['effect'].round(1), line={'color': color, 'width': 4},
-                   name='average of last {} {}s'.format(ma, period_dict2[period]),
+                   name='average of last {} {}s'.format(ma, PERIOD_DICT2[period]),
                    hoverinfo='x+y+name') #,
         # go.Scatter(x=trends['date'], y=trends['5%'], line={'color': 'grey', 'width': 1, 'dash': 'dash'}, mode='lines',
         #            name='5% growth', hoverinfo='skip'),
@@ -121,7 +122,7 @@ def plot_karma_metric(allVotes, start_date, end_date, online=False, period='D', 
 
     layout = go.Layout(
         autosize=True, width=size[0], height=size[1],
-        title='Net Karma, 4x Downvote, {}, 1.2 item exponent'.format(period_dict[period].capitalize()),
+        title='Net Karma, 4x Downvote, {}, 1.2 item exponent'.format(PERIOD_DICT[period].capitalize()),
         xaxis={'range': [start_date, end_date], 'title': None},
         yaxis={'range': [0, votes_ts.set_index(date_col)[start_date:]['effect'].max() * 1.1],
                'title': 'net karma'}
@@ -133,7 +134,7 @@ def plot_karma_metric(allVotes, start_date, end_date, online=False, period='D', 
                                       api_key=get_config_field('PLOTLY', 'api_key'))
     init_notebook_mode(connected=True)
 
-    filename = 'Net Karma Metric - {}'.format(period_dict[period].capitalize())
+    filename = 'Net Karma Metric - {}'.format(PERIOD_DICT[period].capitalize())
     if online:
         py.iplot(fig, filename=filename)
     else:
@@ -142,39 +143,41 @@ def plot_karma_metric(allVotes, start_date, end_date, online=False, period='D', 
     return votes_ts
 
 
-def agg_votes_to_period(dfvv, start_date, period='D'):
-    period_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
+def agg_votes_to_period(votes, start_date, period='D'):
+    period_truncation_dict = {'D': 'D', 'W': '7D', 'M': '30D', 'Q': '91D', 'Y': '365D'}
 
-    post_cols = ['_id', 'postedAt', 'username', 'title', 'baseScore', 'num_votes', 'percent_downvotes',
-                 'num_distinct_viewers']
-    comment_cols = ['_id', 'postId', 'postedAt', 'username', 'baseScore', 'num_votes', 'percent_downvotes']
+    votes_items_period = (votes
+        .assign(votedAt=votes['votedAt'].dt.floor(period_truncation_dict[period]))
+        .set_index('votedAt')
+        .groupby(['documentId', 'collectionName', 'votedAt'], observed=True)
+        .agg(
+            **{
+                'power_d4': pd.NamedAgg(column='power_d4', aggfunc=np.sum),
+                'num_votes_{}'.format(PERIOD_DICT[period]): pd.NamedAgg(column='power_d4', aggfunc=np.size),
+                'effect': pd.NamedAgg(column='effect', aggfunc=np.sum),
+                'percent_downvotes_{}'.format(PERIOD_DICT[period]): pd.NamedAgg(column='effect', aggfunc=np.mean)
+            })
+         .reset_index()
+        )
 
-    d = dfvv.set_index('votedAt').sort_index()[start_date:].groupby(['collectionName', 'documentId']).resample(period).agg(
-        {'power_d4': 'sum', 'effect': 'sum', 'legacy': 'size', 'downvote': 'mean'}
-    ).round(1).reset_index()
-    d = d.rename(
-        columns={'legacy': 'num_votes_{}'.format(period_dict[period]), 'downvote': 'percent_downvotes_{}'.format(period_dict[period])})
-    d = d[d['power_d4'] != 0]  # introduced by resampling function
-    return d
+    return votes_items_period
 
 
 # add total effects
-def add_total_effect_cumulative_and_ranks(dd, period='D'):
-    period_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
+def add_total_effect_cumulative_and_ranks(aggregated_votes, period='D'):
 
-    dd['effect'] = dd['effect'].round(1)
-    dd['abs_effect'] = dd['effect'].abs()
-    total_effects = dd.groupby('votedAt')[['effect', 'abs_effect']].sum().round(1)
-    total_effects.columns = ['net_effect_for_{}'.format(period_dict[period]), 'abs_effect_for_{}'.format(period_dict[period])]
-    total_effects.head()
-    dd = dd.merge(total_effects, left_on='votedAt', right_index=True)
-    dd = dd.sort_values(['votedAt', 'effect'], ascending=[True, False]).set_index(['votedAt', 'title'])
-    dd['rank'] = dd.groupby(level='votedAt')['effect'].rank(method='first', ascending=False)
-    dd['cum_effect'] = dd.groupby(level='votedAt')['effect'].cumsum().round(1)
-    dd['effect_over_abs'] = (dd['effect'] / dd['abs_effect_for_{}'.format(period_dict[period])]).round(3)
-    dd['cum_over_abs'] = (dd['cum_effect'] / dd['abs_effect_for_{}'.format(period_dict[period])]).round(3)
-    dd['inverse_rank'] = dd.groupby(level='votedAt')['effect'].rank(method='first', ascending=True)
-    return dd.reset_index()
+    aggregated_votes['effect'] = aggregated_votes['effect'].round(1)
+    aggregated_votes['abs_effect'] = aggregated_votes['effect'].abs()
+    total_effects = aggregated_votes.groupby('votedAt')[['effect', 'abs_effect']].sum().round(1)
+    total_effects.columns = ['net_effect_for_{}'.format(PERIOD_DICT[period]), 'abs_effect_for_{}'.format(PERIOD_DICT[period])]
+    aggregated_votes = aggregated_votes.merge(total_effects, left_on='votedAt', right_index=True)
+    aggregated_votes = aggregated_votes.sort_values(['votedAt', 'effect'], ascending=[True, False]).set_index(['votedAt', 'title'])
+    aggregated_votes['rank'] = aggregated_votes.groupby(level='votedAt')['effect'].rank(method='first', ascending=False)
+    aggregated_votes['cum_effect'] = aggregated_votes.groupby(level='votedAt')['effect'].cumsum().round(1)
+    aggregated_votes['effect_over_abs'] = (aggregated_votes['effect'] / aggregated_votes['abs_effect_for_{}'.format(PERIOD_DICT[period])]).round(3)
+    aggregated_votes['cum_over_abs'] = (aggregated_votes['cum_effect'] / aggregated_votes['abs_effect_for_{}'.format(PERIOD_DICT[period])]).round(3)
+    aggregated_votes['inverse_rank'] = aggregated_votes.groupby(level='votedAt')['effect'].rank(method='first', ascending=True)
+    return aggregated_votes.reset_index()
 
 
 def create_url_hyperlink(item):
@@ -201,12 +204,11 @@ def add_url_column(dd):
 
 
 def item_agg_select_columns(dd, period):
-    period_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
     cols = ['votedAt', 'collectionName', 'title', 'username_post', 'baseScore_post', 'username_comment',
             'baseScore_comment',
             'effect', 'effect_over_abs', 'cum_effect', 'cum_over_abs',
-            'net_effect_for_{}'.format(period_dict[period]), 'abs_effect_for_{}'.format(period_dict[period]), 'rank', 'inverse_rank',
-            'num_votes_{}'.format(period_dict[period]), 'percent_downvotes_{}'.format(period_dict[period]),
+            'net_effect_for_{}'.format(PERIOD_DICT[period]), 'abs_effect_for_{}'.format(PERIOD_DICT[period]), 'rank', 'inverse_rank',
+            'num_votes_{}'.format(PERIOD_DICT[period]), 'percent_downvotes_{}'.format(PERIOD_DICT[period]),
             'postedAt_post', 'num_distinct_viewers', 'num_votes_post', 'percent_downvotes_post',
             'postedAt_comment', 'num_votes_comment', 'percent_downvotes_comment', 'title_plain'
             ]
@@ -215,11 +217,10 @@ def item_agg_select_columns(dd, period):
 
 
 def post_agg_select_columns(dd, period):
-    period_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
-    cols = ['votedAt', 'title', 'username', 'baseScore', 'num_comments_voted_on_{}'.format(period_dict[period]),
-            'num_votes_thread_{}'.format(period_dict[period]), 'num_downvotes_{}'.format(period_dict[period]),
+    cols = ['votedAt', 'title', 'username', 'baseScore', 'num_comments_voted_on_{}'.format(PERIOD_DICT[period]),
+            'num_votes_thread_{}'.format(PERIOD_DICT[period]), 'num_downvotes_{}'.format(PERIOD_DICT[period]),
             'effect', 'effect_over_abs', 'cum_effect', 'cum_over_abs',
-            'net_effect_for_{}'.format(period_dict[period]), 'abs_effect_for_{}'.format(period_dict[period]), 'rank', 'inverse_rank',
+            'net_effect_for_{}'.format(PERIOD_DICT[period]), 'abs_effect_for_{}'.format(PERIOD_DICT[period]), 'rank', 'inverse_rank',
             'postedAt', 'num_distinct_viewers', 'num_comments_rederived', 'num_votes', 'percent_downvotes',
             'title_plain'
             ]
@@ -250,7 +251,6 @@ def agg_votes_to_items(dfvv, dfp, dfc, start_date, period='D'):
 
 
 def agg_votes_to_posts(votes, dfp, dfc, start_date, period='D'):
-    period_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
     d = agg_votes_to_period(votes, start_date, period)
 
     # add in comments
@@ -261,16 +261,16 @@ def agg_votes_to_posts(votes, dfp, dfc, start_date, period='D'):
 
     # aggregate to post level
     dd['postId'] = dd['postId'].fillna(dd['documentId'])
-    dd['num_downvotes_{}'.format(period_dict[period])] = (
-            dd['num_votes_{}'.format(period_dict[period])] * dd['percent_downvotes_{}'.format(period_dict[period])]).round().astype(
+    dd['num_downvotes_{}'.format(PERIOD_DICT[period])] = (
+        dd['num_votes_{}'.format(PERIOD_DICT[period])] * dd['percent_downvotes_{}'.format(PERIOD_DICT[period])]).round().astype(
         int)
     dd = dd.groupby(['votedAt', 'postId']).agg({'power_d4': 'sum', 'effect': 'sum', 'username': 'size',
-                                                'num_votes_{}'.format(period_dict[period]): 'sum',
-                                                'num_downvotes_{}'.format(period_dict[period]): 'sum'
+                                                'num_votes_{}'.format(PERIOD_DICT[period]): 'sum',
+                                                'num_downvotes_{}'.format(PERIOD_DICT[period]): 'sum'
                                                 })
-    dd['num_comments_voted_on_{}'.format(period_dict[period])] = dd['username'] - 1
+    dd['num_comments_voted_on_{}'.format(PERIOD_DICT[period])] = dd['username'] - 1
     dd = dd.rename(columns={'username': 'num_items',
-                            'num_votes_{}'.format(period_dict[period]): 'num_votes_thread_{}'.format(period_dict[period])})
+                            'num_votes_{}'.format(PERIOD_DICT[period]): 'num_votes_thread_{}'.format(PERIOD_DICT[period])})
     dd = dd.reset_index()
 
     # add in post details
@@ -288,6 +288,17 @@ def agg_votes_to_posts(votes, dfp, dfc, start_date, period='D'):
 
 @timed
 def run_metric_pipeline(collections, end_date_str, online=False, sheets=False, plots=False):
+
+    def prepare_upload(aggregated_votes):
+        return (aggregated_votes
+                .reset_index()
+                .sort_values(['votedAt', 'rank'], ascending=[False, True])
+                .copy()
+                .assign(birth=pd.datetime.now())
+                .rename(lambda x: x.replace('_', ' ').title(), axis=1)
+                .head(int(5e6/30)) # sheet can have max 5e6 cells
+                )
+
     posts = collections['posts']
     comments = collections['comments']
 
@@ -307,17 +318,9 @@ def run_metric_pipeline(collections, end_date_str, online=False, sheets=False, p
         spreadsheet_user = get_config_field('GSHEETS', 'user')
         s = Spread(spread=spreadsheet_name, sheet=None, create_spread=True, create_sheet=True, user=spreadsheet_user)
 
-        period_dict = {'D': 'daily', 'W': 'weekly', 'M': 'monthly', 'Q': 'quarterly', 'Y': 'yearly'}
-
         for period in ['D', 'W']:
             votes2posts = agg_votes_to_posts(allVotes, posts, comments, period=period, start_date=start_date_sheets)
-            data = votes2posts.reset_index().sort_values(['votedAt', 'rank'], ascending=[False, True]).copy()
-            data['birth'] = pd.datetime.now()
-            data.columns = [col.replace('_', ' ').title() for col in data.columns]
-            s.df_to_sheet(data, replace=True, sheet='KM: Posts/{}'.format(period_dict[period]), index=False)
-
             votes2items = agg_votes_to_items(allVotes, posts, comments, period=period, start_date=start_date_sheets)
-            data = votes2items.reset_index().sort_values(['votedAt', 'rank'], ascending=[False, True]).copy()
-            data['birth'] = pd.datetime.now()
-            data.columns = [col.replace('_', ' ').title() for col in data.columns]
-            s.df_to_sheet(data, replace=True, sheet='KM: Items/{}'.format(period_dict[period]), index=False)
+
+            s.df_to_sheet(prepare_upload(votes2posts), replace=True, sheet='KM: Posts/{}'.format(PERIOD_DICT[period]), index=False)
+            s.df_to_sheet(votes2items, replace=True, sheet='KM: Items/{}'.format(PERIOD_DICT[period]), index=False)

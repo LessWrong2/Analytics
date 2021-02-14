@@ -29,7 +29,6 @@ ENV = get_config_field('ENV', 'env')
 
 
 
-@timed
 def get_collection_cleaned(coll_name, db,
                            limit=None, views_start_date=None):  # (name of collection, MongoDB object, read/write arg bundle) -> dataframe
     """
@@ -142,10 +141,6 @@ def get_collection_cleaned(coll_name, db,
             'userId',
             'documentId',
             'createdAt',
-            # 'name',
-            # 'legacy',
-            # 'important',
-            # 'intercom',
         ],
         'logins': [
             '_id',
@@ -256,7 +251,6 @@ def get_collections_cleaned(coll_names=('comments', 'views', 'votes', 'posts', '
     return colls_dict
 
 
-@timed
 def write_collection(coll_name, coll_df, date_str):  # (string, df, arg_bundle) -> None
     # hardcoded to write to db directory. wonderful hardcoding
     # this function really needs some cleanin'
@@ -302,7 +296,6 @@ def clean_up_old_files(days_to_keep=1):
 def load_from_file(date_str, coll_names=('votes', 'views', 'comments', 'posts', 'users', 'tags', 'tagrels', 'sequences')):
     """Loads database collections from csvs to dataframes, ensures datetimes load correctly."""
 
-    @timed
     def read_csv(coll_name):
 
         if coll_name in read_dtypes_arg:
@@ -549,7 +542,11 @@ def calc_user_view_stats(colls_dfs):
     views_df = get_valid_views(colls_dfs)
 
     view_date_stats = views_df.groupby('userId')['createdAt'].agg(
-        {'num_views': 'count', 'most_recent_view': 'max', 'earliest_view': 'min'})
+        num_views='count',
+        most_recent_view='max',
+        earliest_view='min'
+    )
+
     view_post_stats = views_df.groupby('userId')['documentId'].nunique().to_frame('num_distinct_posts_viewed')
 
     views_df['date'] = views_df['createdAt'].dt.date
@@ -570,9 +567,14 @@ def calc_user_comment_stats(colls_dfs):  # dict of df -> df
     """Calculates aggregates statistics over a user's comments."""
 
     comments = get_valid_comments(colls_dfs)
-    comment_stats = comments.groupby('userId')['postedAt'].agg({'total_comments': 'size',
-                                                                'earliest_comment': 'min',
-                                                                'most_recent_comment': 'max'})
+    comment_stats = (comments
+                     .groupby('userId')['postedAt']
+                     .agg(
+                        total_comments='size',
+                        earliest_comment= 'min',
+                        most_recent_comment= 'max'
+                    )
+    )
 
     return comment_stats
 
@@ -586,7 +588,10 @@ def calc_user_post_stats(colls_dfs):  # dict of df -> df
     postsByUser = posts[~posts['draft']].groupby('userId')
 
     post_date_stats = postsByUser['postedAt'].agg(
-        {'total_posts': 'size', 'earliest_post': 'min', 'most_recent_post': 'max'})
+        total_posts='size',
+        earliest_post='min',
+        most_recent_post='max'
+    )
 
     post_stats = post_date_stats # used to be more stats here, but they weren't worth it
 
