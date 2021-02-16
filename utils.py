@@ -190,9 +190,8 @@ def get_word_count(dfp_full):
 
 
 def get_lw_team(users):
-    return (users[users['username']
+    return (users[users['username'].astype(str)
             .isin(['Benito', 'habryka4', 'Raemon', 'jimrandomh', 'Ruby', 'jacobjacob'])]
-            .set_index('_id')['displayName']
-            .to_frame('team_member_name')
+            [['_id', 'displayName']]
             )
 

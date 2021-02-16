@@ -18,7 +18,7 @@ def filtered_and_enriched_votes(dfs):
     votes_raw = dfs['votes']
 
     excluded_posts = posts[(posts['status'] != 2) | posts['authorIsUnreviewed'] | posts['draft']]['_id']
-    lw_team_ids = get_lw_team(users).index
+    lw_team_ids = get_lw_team(users)['_id']
 
     votes_processed = votes_raw[(~votes_raw['userId'].isin(lw_team_ids)) & (~votes_raw['documentId'].isin(excluded_posts))
                 & (votes_raw['collectionName'].isin(['Posts', 'Comments'])

@@ -15,7 +15,6 @@ from plotly_ops import run_plotline
 from google_sheet_ops import *
 from karmametric import run_metric_pipeline
 from postgres_ops import run_pg_pandas_transfer
-from tagging_sheet_ops import run_tag_pipeline
 from google_analytics_ops import run_ga_pipeline
 from url_parsing import run_url_table_update
 from gather_town_pipeline import run_gather_town_pipeline
@@ -851,23 +850,19 @@ def run_core_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
     if postgres:
         run_pg_pandas_transfer(dfs_enriched)
 
-    # ##6. RUN TAGS PIPELINE
-    if tags:
-        run_tag_pipeline(dfs_enriched)
-
-    # ##7. GOOGLE ANALYTICS PIPELINE
+    # ##6. GOOGLE ANALYTICS PIPELINE
     if ga:
         run_ga_pipeline()
 
-    # ##8. URLS TABLE UPDATE
+    # ##7. URLS TABLE UPDATE
     if urls:
         run_url_table_update(dfs_enriched)
 
-    # ##9. GATHER TOWN
+    # ##8. GATHER TOWN
     if gather_town:
         run_gather_town_pipeline()
 
-    # ##10. CLEAN UP OLD FILES TO SAVE SPACE
+    # ##9. CLEAN UP OLD FILES TO SAVE SPACE
     if clean_up:
         clean_up_old_files(days_to_keep=2)
 
@@ -881,7 +876,6 @@ if __name__ == '__main__':
                       gsheets=True,
                       metrics=True,
                       postgres=True,
-                      tags=False,
                       ga=True,
                       urls=True,
                       gather_town=True,
