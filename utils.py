@@ -17,7 +17,7 @@ from pymongo.read_preferences import ReadPreference
 def get_mongo_db_object():
     MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
     MONGO_DB_URL = get_config_field('MONGODB', 'prod_db_url')
-    client = MongoClient(MONGO_DB_URL, read_preference=ReadPreference.SECONDARY)
+    client = MongoClient(MONGO_DB_URL, read_preference=ReadPreference.SECONDARY, unicode_decode_error_handler='ignore')
     db = client[MONGO_DB_NAME]
     return db
 

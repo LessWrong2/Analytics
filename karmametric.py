@@ -146,9 +146,11 @@ def plot_karma_metric(allVotes, start_date, end_date, online=False, period='D', 
 def agg_votes_to_period(votes, start_date, period='D'):
     period_truncation_dict = {'D': 'D', 'W': '7D', 'M': '30D', 'Q': '91D', 'Y': '365D'}
 
+    votes['votedAt'] = pd.to_datetime(votes['votedAt'])
+    
     votes_items_period = (votes
         .assign(votedAt=votes['votedAt'].dt.floor(period_truncation_dict[period]))
-        .set_index('votedAt')[start_date:]
+        .set_index('votedAt').sort_index()[start_date:]
         .groupby(['documentId', 'collectionName', 'votedAt'], observed=True)
         .agg(
             **{
