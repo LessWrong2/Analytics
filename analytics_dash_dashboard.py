@@ -273,7 +273,10 @@ def update_graphs(period, moving_averages, years, n_intervals):
     return graphs
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(
+        port=8050,
+        host='0.0.0.0'
+    )
     print_and_log('app server is running!')
 else:
     app.run_server(debug=True, port=8050)
