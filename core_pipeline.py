@@ -21,11 +21,11 @@ from gather_town_pipeline import run_gather_town_pipeline
 from utils import timed, print_and_log, get_config_field, get_valid_users, get_valid_posts, \
     get_valid_comments, get_valid_votes, get_valid_views, get_collection, get_mongo_db_object
 
+
 MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
 MONGO_DB_URL = get_config_field('MONGODB', 'prod_db_url')
 BASE_PATH = get_config_field('PATHS','base')
 ENV = get_config_field('ENV', 'env')
-
 
 
 def get_collection_cleaned(coll_name, db,

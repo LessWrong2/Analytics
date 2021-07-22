@@ -15,8 +15,6 @@ def get_urls(start_date='2020-01-01'):
     query = """SELECT DISTINCT url FROM
                 (SELECT DISTINCT path AS url FROM lessraw_small WHERE timestamp >= '{0}'
                 UNION
-                SELECT DISTINCT url_to AS url FROM lessraw_small WHERE timestamp >= '{0}'
-                UNION
                 SELECT DISTINCT ga_page_path AS url FROM ga_pages WHERE date >= '{0}'
                 ) sub
                 WHERE url IS NOT NULL""".format(start_date)
