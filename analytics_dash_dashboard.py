@@ -11,7 +11,7 @@ from dataclasses import dataclass, asdict
 from typing import List, Tuple, Optional
 from datetime import datetime
 from core_pipeline import load_from_file
-from utils import get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes, get_valid_views
+from utils import get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes, get_valid_views, print_and_log
 from karmametric import compute_karma_metric
 
 from IPython.core.interactiveshell import InteractiveShell
@@ -274,5 +274,6 @@ def update_graphs(period, moving_averages, years, n_intervals):
 
 if __name__ == "__main__":
     app.run_server(debug=True)
+    print_and_log('app server is running!')
 else:
     app.run_server(debug=True, port=8050)
