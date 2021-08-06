@@ -1,3 +1,4 @@
+from multiprocessing import Event
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
@@ -5,7 +6,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 from flask_caching import Cache
 from dataclasses import dataclass, asdict
 from typing import List, Tuple, Optional
@@ -244,7 +245,8 @@ app.layout = html.Div([
                 step=1,
                 marks={y: str(y) for y in range(min_year,max_year,1)},
                 value=[start_year, datetime.today().year]
-            )
+            ),
+             html.Button('Update Graphs', id='update-button'),
             ],
 #             style={'width': display': 'inline-block', 'padding': '0 20'}
         ),
@@ -264,12 +266,19 @@ app.layout = html.Div([
 #Redraw all graphs upon changing inputs
 @app.callback(
     *[Output(format_title(spec.title), 'figure') for spec in load_data_generate_specs()],
-    Input('period-radio-buttons', 'value'),
-    Input('moving-averages-checkboxes', 'value'),
-    Input('year-range-slider', 'value'),
-    Input('interval-component', 'n_intervals'), prevent_initial_callback=True)
-def update_graphs(period, moving_averages, years, n_intervals):
+    [
+        Input('update-button', 'n_clicks'),
+        Input('interval-component', 'n_intervals')
+    ],
+    state=[
+        State('period-radio-buttons', 'value'),
+        State('moving-averages-checkboxes', 'value'),
+        State('year-range-slider', 'value'),
+    ], prevent_initial_callback=True)
+def update_graphs(n_clicks, n_intervals, period, moving_averages, years):
     logging.debug('graphs updating!')
+    logging.debug('n_clicks: '.format(n_clicks))
+    logging.debug('n_intervals: '.format(n_intervals))
     graphs = [generate_timeseries_plot(**{
         **asdict(spec), 
         **{ #second dict overwrites original spec dict
@@ -283,4 +292,4 @@ def update_graphs(period, moving_averages, years, n_intervals):
     return graphs
 
 if __name__ == '__main__':
-    app.run_server(debug=False, host='0.0.0.0', port=8050)
+    app.run_server(debug=True, host='0.0.0.0', port=8050)
