@@ -11,7 +11,7 @@ from dataclasses import dataclass, asdict
 from typing import List, Tuple, Optional
 from datetime import datetime
 from core_pipeline import load_from_file
-from utils import get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes, get_valid_views, print_and_log
+from utils import get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes, get_valid_views, print_and_log, timed
 from karmametric import compute_karma_metric
 
 from IPython.core.interactiveshell import InteractiveShell
@@ -19,9 +19,13 @@ InteractiveShell.ast_node_interactivity = "all"
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
+import logging
+import sys
+logging.basicConfig(filename='dash_app.log', level=logging.DEBUG)
+logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-app.title = "LW Analytics Dashboard 3.0"
-server = app.server 
+server = app.server
 
 cache = Cache(app.server, config={'CACHE_TYPE': 'SimpleCache'})
 
@@ -61,7 +65,10 @@ class PlotSpec:
 
 # This structure contains the "business logic" of each plot and uses them to load data and generate actual plot_spec objects that can generate plots.
 @cache.memoize(timeout=3600)
-def load_data_generate_specs():        
+def load_data_generate_specs():
+    
+    logging.debug('loading and generating data')
+  
     collections = load_from_file(date_str='most_recent', coll_names=['users', 'posts', 'comments', 'votes', 'views'])
     allVotes, _, _ = compute_karma_metric(collections) # calculate karma metric
         
@@ -146,6 +153,7 @@ def load_data_generate_specs():
 def format_title(title):
     return title.lower().replace(' ','-').replace("+","plus").replace(',','')
 
+@timed
 def generate_timeseries_plot(
     data, 
     title,
@@ -163,6 +171,7 @@ def generate_timeseries_plot(
     hidden_by_default=[], 
     ymin=0):
     """Takes in collection dataframes plus plot specification to generate a plotly/dash graphout (layout/data pair)"""
+    logging.debug('generating graph for %s', title)
     
     period_dict = {'day': 'D', 'week': 'W', 'month': 'M', 'year': 'Y'}
 
@@ -260,6 +269,7 @@ app.layout = html.Div([
     Input('year-range-slider', 'value'),
     Input('interval-component', 'n_intervals'), prevent_initial_callback=True)
 def update_graphs(period, moving_averages, years, n_intervals):
+    logging.debug('graphs updating!')
     graphs = [generate_timeseries_plot(**{
         **asdict(spec), 
         **{ #second dict overwrites original spec dict
@@ -272,11 +282,5 @@ def update_graphs(period, moving_averages, years, n_intervals):
     
     return graphs
 
-if __name__ == "__main__":
-    app.run_server(
-        port=8050,
-        host='0.0.0.0'
-    )
-    print_and_log('app server is running!')
-else:
-    app.run_server(debug=True, port=8050)
+if __name__ == '__main__':
+    app.run_server(debug=False, host='0.0.0.0', port=8050)
