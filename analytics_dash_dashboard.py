@@ -167,7 +167,7 @@ def resample_timeseries(title, data, date_column, agg_column, agg_func, period, 
         )
 
 @timed
-def generate_timeseries_dict(plot_specs, periods=['D','W','M'], moving_averages=[1, 4]): #, 7, 28]):
+def generate_timeseries_dict(plot_specs, periods=['D','W','M'], moving_averages=[1, 4, 7, 28]):
 
     return {
         (spec.title, pr, ma): resample_timeseries(
