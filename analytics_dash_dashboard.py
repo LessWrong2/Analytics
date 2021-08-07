@@ -1,4 +1,5 @@
 from multiprocessing import Event
+from matplotlib.pyplot import cla
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
@@ -26,6 +27,7 @@ logging.basicConfig(filename='dash_app.log', level=logging.DEBUG)
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app.title = "LW Analytics Dashboard v3.0.1"
 server = app.server
 
 cache = Cache(app.server, config={'CACHE_TYPE': 'SimpleCache'})
@@ -75,7 +77,7 @@ def load_data_generate_specs():
         
     plot_specs = [
         PlotSpec(
-            title='Karma Metric: Net Karma, 4x Downvote, 1point2 item exponent',
+            title='Karma Metric',
             data=allVotes,
             date_column='votedAt',
             agg_func='sum',
@@ -167,7 +169,7 @@ def generate_timeseries_plot(
     widths={1: 0.5, 4: 1.7, 7: 1.5, 28: 3},
     agg_func='size',
     agg_col='dummy', 
-    size=(700, 400), 
+    size=(700, 500), 
     remove_last_periods=1, 
     hidden_by_default=[], 
     ymin=0):
@@ -211,7 +213,15 @@ def generate_timeseries_plot(
             .set_index(date_column)[start_date:][title]
             .max() * 1.05],
         'title': title},
-        #         annotations=annotations
+        template="seaborn",
+        font={
+            'family': "'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif",
+            'size': 12
+            },
+        title_font={
+            'family': "'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif",
+            'size': 18
+            }
     )
 
     return {'layout': layout, 'data': data}
@@ -219,15 +229,19 @@ def generate_timeseries_plot(
 
 # Dash App Layout
 app.layout = html.Div([
-    html.Div([
-        html.Div([
+    html.Div(className='layout', children=[
+        html.H1(app.title, className="main-title"),
+        html.Div(className='controls', children=[
+            html.Div("Aggregation Period", className="control-labels"),
             dcc.RadioItems(
                 id='period-radio-buttons',
                 options=[{'label': i, 'value': i} for i in ['Day', 'Week', 'Month']],
                 value='Week',
-                labelStyle={'display': 'inline-block'}
+                labelStyle={'display': 'inline-block', 'margin-right': '15px'}
             ),
+            html.Div("Moving Average Filters", className="control-labels"),
             dcc.Checklist(
+                className='moving-average-checkboxes',
                 id='moving-averages-checkboxes',
                 options=[
                     {'label': '1', 'value': 1},
@@ -236,8 +250,9 @@ app.layout = html.Div([
                     {'label': '28', 'value': 28},
                 ],
                 value=[1, 4],
-                labelStyle={'display': 'inline-block'}
+                labelStyle={'display': 'inline-block', 'margin-right': '15px'}
             ),
+            html.Div("Select Date Range", className="control-labels"),
             dcc.RangeSlider(
                 id='year-range-slider',
                 min=min_year,
@@ -246,19 +261,19 @@ app.layout = html.Div([
                 marks={y: str(y) for y in range(min_year,max_year,1)},
                 value=[start_year, datetime.today().year]
             ),
-             html.Button('Update Graphs', id='update-button'),
-            ],
-#             style={'width': display': 'inline-block', 'padding': '0 20'}
+            html.Button('Update Graphs', id='update-button', className='update-button'),
+        ],
         ),
-        html.Div(
-            [dcc.Graph(
+        html.Div(className='graphs', children=[
+            dcc.Graph(
                     id=format_title(spec.title),
-                    figure=generate_timeseries_plot(**asdict(spec)) 
+                    figure=generate_timeseries_plot(**asdict(spec)),
+                    className='graph',
+                    style={'background-color': 'f0f0f0'} 
                 ) for spec in load_data_generate_specs()],
-            style={'width': '49%', 'display': 'inline-block', 'padding': '0 20'}),
+        ),
         dcc.Interval(id='interval-component', interval=3600*1000, n_intervals=0)
     ],
-#     style={'width': '49%', 'display': 'inline-block'}
     )   
 ])
 
