@@ -1,5 +1,3 @@
-from multiprocessing import Event
-from matplotlib.pyplot import cla
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
@@ -9,8 +7,8 @@ import dash_html_components as html
 
 from dash.dependencies import Input, Output, State
 from flask_caching import Cache
-from dataclasses import dataclass, asdict
-from typing import List, Tuple, Optional
+from dataclasses import dataclass
+from typing import List, Tuple
 from datetime import datetime
 from core_pipeline import load_from_file
 from utils import get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes, get_valid_views, print_and_log, timed
@@ -19,14 +17,12 @@ from karmametric import compute_karma_metric
 from IPython.core.interactiveshell import InteractiveShell
 InteractiveShell.ast_node_interactivity = "all"
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
 import logging
 import sys
 logging.basicConfig(filename='dash_app.log', level=logging.DEBUG)
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app = dash.Dash(__name__)
 app.title = "LW Analytics Dashboard v3.0.1"
 server = app.server
 
@@ -56,10 +52,10 @@ class PlotSpec:
     data: pd.DataFrame
     color: str
     date_column: str
-    period: str = 'week'
+    period: str = 'W'
     moving_averages: List[int] = (1, 4) 
     agg_func: str = 'size'
-    agg_col: str = 'dummy'
+    agg_column: str = 'dummy'
     start_date: datetime = datetime(2020, 1, 1)
     end_date: datetime = datetime.today().date()
     size: Tuple[int, int] = (800, 400)
@@ -67,6 +63,7 @@ class PlotSpec:
         
 
 # This structure contains the "business logic" of each plot and uses them to load data and generate actual plot_spec objects that can generate plots.
+@timed
 @cache.memoize(timeout=3600)
 def load_data_generate_specs():
     
@@ -81,7 +78,7 @@ def load_data_generate_specs():
             data=allVotes,
             date_column='votedAt',
             agg_func='sum',
-            agg_col='effect',
+            agg_column='effect',
             color='red',
         ),
         PlotSpec(
@@ -96,12 +93,12 @@ def load_data_generate_specs():
             date_column='createdAt',
             color='black',
             agg_func='nunique',
-            agg_col='userId',
+            agg_column='userId',
         ),
         PlotSpec(
-            title='Num Posts with 2+ Upvotes', 
+            title='Num Posts with 2+ Upvotes',
             data=get_valid_posts(collections, required_upvotes=post_required_upvotes)[used_columns['posts']],
-            date_column='postedAt', 
+            date_column='postedAt',
             color='blue',
         ),
         PlotSpec(
@@ -110,7 +107,7 @@ def load_data_generate_specs():
             date_column='postedAt',
             color='darkblue',
             agg_func='nunique',
-            agg_col='userId'
+            agg_column='userId'
         ),
         PlotSpec(
             title='Num Comments',
@@ -124,7 +121,7 @@ def load_data_generate_specs():
             date_column='postedAt',
             color='darkgreen',
             agg_func='nunique',
-            agg_col='userId'
+            agg_column='userId'
         ),
         PlotSpec(
             title='Num Votes (excluding self-votes)',
@@ -138,7 +135,7 @@ def load_data_generate_specs():
             date_column='votedAt', 
             color='darkorange',
             agg_func='nunique',
-            agg_col='userId'
+            agg_column='userId'
         ),
         PlotSpec(
             title='Num Logged-In Post Views', 
@@ -153,45 +150,75 @@ def load_data_generate_specs():
     
     return plot_specs
 
+
+def resample_timeseries(title, data, date_column, agg_column, agg_func, period, moving_average=1, remove_last_periods=1):
+    """Assumes date column is already index"""
+    return (data
+        .set_index(date_column)
+        .assign(dummy=1)
+        .resample(period)[agg_column]
+        .agg(agg_func)
+        .rolling(moving_average)
+        .mean()
+        .to_frame(title)
+        .round(1)
+        .reset_index()
+        .iloc[:-remove_last_periods]
+        )
+
+@timed
+def generate_timeseries_dict(plot_specs, periods=['D','W','M'], moving_averages=[1, 4]): #, 7, 28]):
+
+    return {
+        (spec.title, pr, ma): resample_timeseries(
+        title=spec.title, 
+        data=spec.data,
+        date_column=spec.date_column,
+        agg_column=spec.agg_column,
+        agg_func=spec.agg_func,
+        period=pr,
+        moving_average=ma,
+    )
+    for spec in plot_specs for pr in periods for ma in moving_averages
+    }
+
+@cache.memoize(timeout=3600)
+def generate_all_timeseries():
+    plot_specs = load_data_generate_specs()
+    timeseries_dict = generate_timeseries_dict(plot_specs)
+
+    return timeseries_dict
+
+
+def return_specific_timeseries(plot_specs, period, moving_averages):
+    pass
+
+
 def format_title(title):
     return title.lower().replace(' ','-').replace("+","plus").replace(',','')
 
+
 @timed
 def generate_timeseries_plot(
-    data, 
+    timeseries_dict, 
     title,
     color,
     date_column,
     start_date,
     end_date, 
-    period='D', 
+    period='day', 
     moving_averages=[1, 7], 
     widths={1: 0.5, 4: 1.7, 7: 1.5, 28: 3},
-    agg_func='size',
-    agg_col='dummy', 
     size=(700, 500), 
-    remove_last_periods=1, 
     hidden_by_default=[], 
     ymin=0):
-    """Takes in collection dataframes plus plot specification to generate a plotly/dash graphout (layout/data pair)"""
+    """Takes in dict containing all traces precomputed plus plot specifications in order to generate figure data"""
     logging.debug('generating graph for %s', title)
     
     period_dict = {'day': 'D', 'week': 'W', 'month': 'M', 'year': 'Y'}
 
-    timeseries_dict = { #generate one timeseries for each moving average value TODO: could possibly generate a daily series for each that would be faster for subsequent resamples, except that's hard with the unique-ons
-        ma: (data
-            .set_index(date_column)
-            .assign(dummy=1)
-            .resample(period_dict[period.lower()])[agg_col]
-            .agg(agg_func)
-            .rolling(ma)
-            .mean()
-            .to_frame(title)
-            .round(1)
-            .reset_index()
-            .iloc[:-remove_last_periods])
-        for ma in moving_averages
-    }
+    traces_dict  = {ma: timeseries_dict[(title, period_dict[period.lower()], ma)] for ma in moving_averages}
+
 
     data = [
         go.Scatter(
@@ -201,14 +228,14 @@ def generate_timeseries_plot(
             name='{}-{} avg'.format(ma, period.lower()),
             visible=True if not ma in hidden_by_default else 'legendonly'
             )
-        for ma, timeseries in timeseries_dict.items()
+        for ma, timeseries in traces_dict.items()
     ]
 
     layout = go.Layout(
         autosize=True, width=size[0], height=size[1],
         title=title,
         xaxis={'range': [start_date, end_date]},
-        yaxis={'range': [ymin, timeseries_dict[ 
+        yaxis={'range': [ymin, traces_dict[ 
             np.min(moving_averages)]
             .set_index(date_column)[start_date:][title]
             .max() * 1.05],
@@ -216,16 +243,15 @@ def generate_timeseries_plot(
         template="seaborn",
         font={
             'family': "'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif",
-            'size': 12
+            'size': 14
             },
         title_font={
             'family': "'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif",
-            'size': 18
+            'size': 24
             }
     )
 
     return {'layout': layout, 'data': data}
-
 
 # Dash App Layout
 app.layout = html.Div([
@@ -237,7 +263,8 @@ app.layout = html.Div([
                 id='period-radio-buttons',
                 options=[{'label': i, 'value': i} for i in ['Day', 'Week', 'Month']],
                 value='Week',
-                labelStyle={'display': 'inline-block', 'margin-right': '15px'}
+                labelStyle={'display': 'inline-block', 'margin-right': '15px'},
+                inputStyle={'width': '20px', 'height': '20px', 'margin-right': '6px'},
             ),
             html.Div("Moving Average Filters", className="control-labels"),
             dcc.Checklist(
@@ -250,15 +277,17 @@ app.layout = html.Div([
                     {'label': '28', 'value': 28},
                 ],
                 value=[1, 4],
+                inputStyle={'width': '20px', 'height': '20px', 'margin-right': '6px'},
                 labelStyle={'display': 'inline-block', 'margin-right': '15px'}
             ),
             html.Div("Select Date Range", className="control-labels"),
             dcc.RangeSlider(
                 id='year-range-slider',
+                className='year-range-slider',
                 min=min_year,
                 max=max_year,
                 step=1,
-                marks={y: str(y) for y in range(min_year,max_year,1)},
+                marks={y: {'label': str(y), 'style': {'font-size': '1.5rem'}} for y in range(min_year,max_year+1,1)},
                 value=[start_year, datetime.today().year]
             ),
             html.Button('Update Graphs', id='update-button', className='update-button'),
@@ -267,7 +296,16 @@ app.layout = html.Div([
         html.Div(className='graphs', children=[
             dcc.Graph(
                     id=format_title(spec.title),
-                    figure=generate_timeseries_plot(**asdict(spec)),
+                    figure=generate_timeseries_plot(
+                        timeseries_dict=generate_all_timeseries(),
+                        title=spec.title,
+                        color=spec.color,
+                        period='Week',
+                        moving_averages=[1,4],
+                        date_column=spec.date_column,
+                        start_date=spec.start_date,
+                        end_date=spec.end_date,
+                    ),
                     className='graph',
                     style={'background-color': 'f0f0f0'} 
                 ) for spec in load_data_generate_specs()],
@@ -289,20 +327,22 @@ app.layout = html.Div([
         State('period-radio-buttons', 'value'),
         State('moving-averages-checkboxes', 'value'),
         State('year-range-slider', 'value'),
-    ], prevent_initial_callback=True)
+    ], prevent_initial_callback=False)
 def update_graphs(n_clicks, n_intervals, period, moving_averages, years):
     logging.debug('graphs updating!')
     logging.debug('n_clicks: '.format(n_clicks))
     logging.debug('n_intervals: '.format(n_intervals))
-    graphs = [generate_timeseries_plot(**{
-        **asdict(spec), 
-        **{ #second dict overwrites original spec dict
-            'period':period, 
-            'moving_averages':moving_averages, 
-            'start_date':datetime(years[0],1,1), 
-            'end_date': min(datetime.today(), datetime(years[1],12,31))
-        }
-    }) for spec in load_data_generate_specs()]
+    graphs = [
+        generate_timeseries_plot(
+            timeseries_dict=generate_all_timeseries(),
+            title=spec.title,
+            color=spec.color,
+            date_column=spec.date_column,
+            period=period,
+            moving_averages=moving_averages,
+            start_date=datetime(years[0], 1 ,1),
+            end_date=min(datetime.today(), datetime(years[1],12,31))
+        ) for spec in load_data_generate_specs()]
     
     return graphs
 

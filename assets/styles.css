@@ -4,7 +4,6 @@ body {
 }
 
 .layout {
-    max-width: 95%;
     margin-left: 50px;
     margin-top: 50px
 }
@@ -16,11 +15,12 @@ body {
 }
 
 .controls {
-    max-width: 920px;
+    max-width: 1200px;
     margin: 20px 50px 20px 0px;
     padding: 25px;
     background-color: #ffffff;
-    font-size: 2.5rem;
+    font-size: 2rem;
+    font-weight: 400;
 }
 
 .control-labels {
@@ -29,10 +29,14 @@ body {
     font-weight: 300;
 }
 
+.year-range-slider {
+    font-size: 2.0rem;
+}
+
 .update-button {
     font-size: 2.0rem;
     background-color: #eaeaf2;
-    margin-top: 20px;
+    margin-top: 40px;
     width: 300px;
     height: 60px;
 }
