@@ -6,6 +6,7 @@
 # Config Files #
 ################
 *.ini
+.env
 
 # Compiled source #
 ###################
