@@ -37,6 +37,8 @@ $$ LANGUAGE plpgsql IMMUTABLE STRICT;
 
 CREATE INDEX raw_event_type_post_id ON raw (event_type, get_post_id_from_path(event->>'path'));
 
+-- Timer event is the main way to tell how many people have read your post and
+-- for how long
 CREATE VIEW post_timer_event AS (
   SELECT
     environment,
