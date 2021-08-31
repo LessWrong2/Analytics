@@ -29,7 +29,7 @@ ENV = get_config_field('ENV', 'env')
 
 
 def get_collection_cleaned(coll_name, db,
-                           limit=None, views_start_date=None):  # (name of collection, MongoDB object, read/write arg bundle) -> dataframe
+                           limit=None, votes_views_start_date=None):  # (name of collection, MongoDB object, read/write arg bundle) -> dataframe
     """
     Downloads, *processes* and returns single collection from MongoDB.
 
@@ -207,12 +207,16 @@ def get_collection_cleaned(coll_name, db,
         'sequences': clean_raw_sequences
     }
 
-    if not views_start_date:
-        views_start_date = datetime.datetime.today() - datetime.timedelta(days=365*3)
-    if type(views_start_date) == str:
-        views_start_date = pd.datetime(views_start_date)
+    if not votes_views_start_date:
+        votes_views_start_date = datetime.datetime.today() - datetime.timedelta(days=365 * 3)
+    if type(votes_views_start_date) == str:
+        votes_views_start_date = pd.datetime(votes_views_start_date)
 
-    query_filters = {'logins': {'name': 'login'}, 'views': {'name': 'post-view', 'createdAt': {'$gte': views_start_date}}}
+    query_filters = {
+        'logins': {'name': 'login'},
+        'votes': {'votedAt': {'$gte': votes_views_start_date}},
+        'views': {'name': 'post-view', 'createdAt': {'$gte': votes_views_start_date}},
+    }
 
     def name_check(coll_name):
         # ugly, but how else to do it?
