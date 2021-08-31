@@ -64,7 +64,7 @@ class PlotSpec:
 
 # This structure contains the "business logic" of each plot and uses them to load data and generate actual plot_spec objects that can generate plots.
 @timed
-@cache.memoize(timeout=3600)
+@cache.memoize(timeout=600)
 def load_data_generate_specs():
     
     logging.debug('loading and generating data')
@@ -182,7 +182,7 @@ def generate_timeseries_dict(plot_specs, periods=['D','W','M'], moving_averages=
     for spec in plot_specs for pr in periods for ma in moving_averages
     }
 
-@cache.memoize(timeout=3600)
+@cache.memoize(timeout=7200)
 def generate_all_timeseries():
     plot_specs = load_data_generate_specs()
     timeseries_dict = generate_timeseries_dict(plot_specs)
