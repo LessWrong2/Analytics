@@ -14,6 +14,7 @@ import configparser
 from plotly_ops import run_plotline
 from google_sheet_ops import *
 from karmametric import run_metric_pipeline
+from dash_aggregations import run_dash_aggregations_pipeline
 from postgres_ops import run_pg_pandas_transfer
 from google_analytics_ops import run_ga_pipeline
 from url_parsing import run_url_table_update
@@ -822,7 +823,7 @@ def enrich_collections(colls_dfs,
 
 
 @timed
-def run_core_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsheets=True,
+def run_core_pipeline(date_str, from_file=False, clean_up=True, dash=True, gsheets=True,
                       metrics=True, postgres=True, tags=True, ga=True, urls=True,
                       gather_town=True, limit=None):
     # ##1. LOAD DATA
@@ -840,11 +841,9 @@ def run_core_pipeline(date_str, from_file=False, clean_up=True, plotly=True, gsh
     if metrics:
         run_metric_pipeline(dfs_enriched, date_str, online=True, sheets=True, plots=True)
 
-    # ##3. PLOT GRAPHS TO PLOTLY DASHBOARD
-    if plotly:
-        start_date = (pd.to_datetime(date_str) - pd.Timedelta(180, unit='d')).strftime('%Y-%m-%d')
-        run_plotline(dfs_enriched, start_date=start_date, size=(700, 350), pr='D', ma=[1, 28], online=True,
-                      widths={1: 0.75, 7: 1.5, 28: 3}, hidden_by_default=[7])
+    # ##3. GENERATE TIMESERIES FOR DASH
+    if dash:
+        run_dash_aggregations_pipeline(dfs_enriched, date_str)
 
     # ##4. PLOT GRAPHS TO PLOTLY DASHBOARD
     if gsheets:
