@@ -21,11 +21,11 @@ class PlotSpec:
     data: pd.DataFrame
     color: str
     date_column: str
-    period: str = 'W'
-    moving_averages: List[int] = (1, 4)
+    period: str = 'D'
+    moving_averages: List[int] = (1, 7, 28)
     agg_func: str = 'size'
     agg_column: str = 'dummy'
-    start_date: datetime = datetime.today().date() - timedelta(14)
+    start_date: datetime = datetime.today().date() - timedelta(28)
     end_date: datetime = datetime.today().date()
     size: Tuple[int, int] = (800, 400)
     remove_last_periods: int = 1

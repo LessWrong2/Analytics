@@ -8,7 +8,6 @@ import dash_aggregations as da
 import core_pipeline as cp
 
 from dash.dependencies import Input, Output, State
-from flask_caching import Cache
 from datetime import datetime, timedelta, date
 from utils import timed
 from dash_aggregations import generate_specs, BASE_PATH
@@ -21,8 +20,6 @@ logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 app = dash.Dash(__name__)
 app.title = "LW Analytics Dashboard v3.0.1"
 server = app.server
-
-cache = Cache(app.server, config={'CACHE_TYPE': 'SimpleCache'})
 
 
 # Configurables
@@ -44,7 +41,6 @@ def load_timeseries_dict():
     return timeseries_dict
 
 
-@cache.memoize(timeout=36000)
 def generate_specs():
     date_str = cp.get_list_of_dates()[0][-8:]
     directory = da.BASE_PATH + '{folder}/{date}'.format(folder='processed', date=date_str)
@@ -112,7 +108,8 @@ def generate_timeseries_plot(
     return {'layout': layout, 'data': data}
 
 # Dash App Layout
-app.layout = html.Div([
+def layout():
+  return html.Div([
     html.Div(className='layout', children=[
         html.H1(app.title, className="main-title"),
         html.Div(className='controls', children=[
@@ -134,7 +131,7 @@ app.layout = html.Div([
                     {'label': '7', 'value': 7},
                     {'label': '28', 'value': 28},
                 ],
-                value=[1, 7],
+                value=[1, 7, 28],
                 inputStyle={'width': '20px', 'height': '20px', 'margin-right': '6px'},
                 labelStyle={'display': 'inline-block', 'margin-right': '15px'}
             ),
@@ -144,7 +141,7 @@ app.layout = html.Div([
                 id='date-picker-range',
                 display_format="YYYY-MM-DD",
                 min_date_allowed=date(2009, 1, 1),
-                max_date_allowed=date.today(),
+                max_date_allowed=date(2022,1,1),
                 initial_visible_month=date(2021, 1, 1),
                 start_date=date.today() - timedelta(28),
                 end_date=date.today()
@@ -163,7 +160,7 @@ app.layout = html.Div([
                         title=spec.title,
                         color=spec.color,
                         period='Day',
-                        moving_averages=[1,7],
+                        moving_averages=[1,7, 28],
                         date_column=spec.date_column,
                         start_date=spec.start_date,
                         end_date=spec.end_date,
@@ -176,6 +173,8 @@ app.layout = html.Div([
     ],
     )   
 ])
+
+app.layout = layout
 
 
 #Redraw all graphs upon changing inputs

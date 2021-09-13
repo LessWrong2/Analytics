@@ -875,7 +875,7 @@ def run_core_pipeline(date_str, from_file=False, clean_up=True, dash=True, gshee
 if __name__ == '__main__':
     run_core_pipeline(
                       date_str=pd.datetime.today().strftime('%Y%m%d'),
-                      plotly=True,
+                      dash=True,
                       gsheets=True,
                       metrics=True,
                       postgres=True,
