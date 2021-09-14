@@ -3,4 +3,4 @@ set -eox pipefail
 
 source .env
 
-PGPASSWORD=$PGPASSWORD bash -c "pg_prove -d forumanalytics -h $DATABASE_HOST -U postgres --verbose $1"
+PGPASSWORD=$PGPASSWORD bash -c "pg_prove -d $DATABASE_NAME -h $DATABASE_HOST -U $DATABASE_USER --verbose $1"
