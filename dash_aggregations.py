@@ -160,14 +160,25 @@ def generate_timeseries_dict(plot_specs, periods=['D', 'W', 'M'], moving_average
 def run_dash_aggregations_pipeline(collections, date_str):
 
     plot_specs = generate_specs(collections)
+    
+    plot_specs_small = [
+        PlotSpec(
+            title=spec.title,
+            data=pd.DataFrame(),
+            date_column=spec.date_column,
+            agg_func=spec.agg_func,
+            agg_column=spec.agg_column,
+            color=spec.color,
+        ) for spec in plot_specs
+    ]
+    
     timeseries_dict = generate_timeseries_dict(plot_specs)
-
 
     directory = BASE_PATH + '{folder}/{date}'.format(folder='processed', date=date_str)
     print_and_log('Writing timeseries_dict to disk.')
-    pickle.dump(plot_specs, open(directory + '/plot_specs.p', 'wb'))
+    pickle.dump(plot_specs_small, open(directory + '/plot_specs.p', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
     print_and_log('Writing plot_specs to disk.')
-    pickle.dump(timeseries_dict, open(directory + '/timeseries_dict.p', 'wb'))
+    pickle.dump(timeseries_dict, open(directory + '/timeseries_dict.p', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
     print_and_log('Writing timeseries_dict and plot_specs to disk completed')
 
