@@ -2,10 +2,6 @@
 -- migrate:up
 -- #############################################################################
 
--- Before this we needed to run:
--- forumanalytics=> update raw set event = (event#>>'{}')::jsonb;
--- which casts the older text strings to actual JSONB
-
 DROP INDEX IF EXISTS raw_event_type_post_id;
 
 CREATE or replace FUNCTION get_post_id_from_path(path TEXT)
