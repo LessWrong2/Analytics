@@ -168,10 +168,9 @@ CREATE VIEW page_view AS (
 -- migrate:down
 -- #############################################################################
 
--- DROP INDEX raw_event_type_post_id_timer_event;
--- DROP INDEX raw_event_type_post_id_page_load_finished;
--- DROP INDEX raw_event_type_post_id_navigate;
-
+DROP INDEX raw_event_type_post_id_timer_event;
+DROP INDEX raw_event_type_post_id_page_load_finished;
+DROP INDEX raw_event_type_post_id_navigate;
 
 CREATE or replace FUNCTION get_post_id_from_path(path TEXT)
 RETURNS TEXT AS $$
@@ -189,7 +188,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql IMMUTABLE STRICT;
 
--- CREATE INDEX raw_event_type_post_id ON raw (event_type, get_post_id_from_path(event->>'path'));
+CREATE INDEX raw_event_type_post_id ON raw (event_type, get_post_id_from_path(event->>'path'));
 
 DROP VIEW page_view;
 
