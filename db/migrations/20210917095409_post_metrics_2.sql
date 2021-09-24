@@ -1,10 +1,13 @@
+-- Make more views, some refactoring to deal with the different ways events can
+-- store the path
+
 -- #############################################################################
 -- migrate:up
 -- #############################################################################
 
 DROP INDEX IF EXISTS raw_event_type_post_id;
 
-CREATE or replace FUNCTION get_post_id_from_path(path TEXT)
+CREATE OR REPLACE FUNCTION get_post_id_from_path(path TEXT)
 RETURNS TEXT AS $$
 DECLARE
   post_id TEXT;
@@ -44,8 +47,6 @@ CREATE VIEW event_timer_event AS (
   WHERE event_type = 'timerEvent'
 );
 
--- TODO: these paths aren't necessarily correct and need to be updated for
--- whatever a pageLoadFinished event normally has
 CREATE VIEW event_page_load_finished AS (
   SELECT
     environment,
@@ -172,7 +173,7 @@ DROP INDEX raw_event_type_post_id_timer_event;
 DROP INDEX raw_event_type_post_id_page_load_finished;
 DROP INDEX raw_event_type_post_id_navigate;
 
-CREATE or replace FUNCTION get_post_id_from_path(path TEXT)
+CREATE OR REPLACE FUNCTION get_post_id_from_path(path TEXT)
 RETURNS TEXT AS $$
 DECLARE
   post_id TEXT;
