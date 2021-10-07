@@ -1,45 +1,48 @@
 BEGIN;
 
-TRUNCATE TABLE raw;
+SELECT plan(7);
 
-CREATE TABLE get_post_id_from_path_test (
-  path text,
-  expected_post_id TEXT,
-  description TEXT
-);
-
-INSERT INTO get_post_id_from_path_test VALUES (
-  '/',
+SELECT is(
+  get_post_id_from_path('/'),
   NULL,
-  'Nothing there'
-), (
-  '/posts/7irLXuSJGW7CjfunB/new-start-here',
-  '7irLXuSJGW7CjfunB',
-  'Simple post'
-), (
-  '/s/6gFGprxo27o7desCs/p/yBHqxKYS5rZot3gdq',
-  'yBHqxKYS5rZot3gdq',
-  'Post viewed in sequence view'
+  'returns null if no post id in string'
 );
 
-CREATE FUNCTION test_get_post_id_from_path ()
-RETURNS SETOF TEXT AS $$
-DECLARE
-  test get_post_id_from_path_test;
-BEGIN
-  FOR test IN (SELECT * FROM get_post_id_from_path_test) LOOP
-    RETURN NEXT is(
-      get_post_id_from_path(test.path),
-      test.expected_post_id,
-      test.description
-    );
-  END LOOP;
-END
-$$ LANGUAGE plpgsql;
+SELECT is(
+  get_post_id_from_path('/posts/7irLXuSJGW7CjfunB/new-start-here'),
+  '7irLXuSJGW7CjfunB',
+  'returns post id from relative path'
+);
 
-SELECT plan(3);
+SELECT is(
+  get_post_id_from_path('/s/6gFGprxo27o7desCs/p/yBHqxKYS5rZot3gdq'),
+  'yBHqxKYS5rZot3gdq',
+  'returns post id from relative path in sequence view'
+);
 
-SELECT test_get_post_id_from_path();
+SELECT is(
+  get_post_id_from_path('http://localhost:3000/posts/7irLXuSJGW7CjfunB/new-start-here'),
+  '7irLXuSJGW7CjfunB',
+  'returns post id from absolute path (http)'
+);
+
+SELECT is(
+  get_post_id_from_path('http://localhost:3000/s/6gFGprxo27o7desCs/p/yBHqxKYS5rZot3gdq'),
+  'yBHqxKYS5rZot3gdq',
+  'returns post id from absolute path in sequence view (http)'
+);
+
+SELECT is(
+  get_post_id_from_path('https://forum.effectivealtruism.org/posts/7irLXuSJGW7CjfunB/new-start-here'),
+  '7irLXuSJGW7CjfunB',
+  'returns post id from absolute path (https)'
+);
+
+SELECT is(
+  get_post_id_from_path('https://forum.effectivealtruism.org/s/6gFGprxo27o7desCs/p/yBHqxKYS5rZot3gdq'),
+  'yBHqxKYS5rZot3gdq',
+  'returns post id from absolute path in sequence view (https)'
+);
 
 SELECT finish();
 
