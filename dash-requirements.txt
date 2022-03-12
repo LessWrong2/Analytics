@@ -78,7 +78,7 @@ parso @ file:///home/conda/feedstock_root/build_artifacts/parso_1617148930513/wo
 patsy==0.5.1
 pexpect @ file:///home/conda/feedstock_root/build_artifacts/pexpect_1602535608087/work
 pickleshare @ file:///home/conda/feedstock_root/build_artifacts/pickleshare_1602536217715/work
-Pillow==8.3.1
+Pillow==9.0.1
 plotly @ file:///home/conda/feedstock_root/build_artifacts/plotly_1626369292129/work
 plotly-express==0.4.1
 prometheus-client==0.11.0
