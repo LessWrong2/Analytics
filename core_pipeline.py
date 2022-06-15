@@ -209,7 +209,7 @@ def get_collection_cleaned(coll_name, db,
     }
 
     if not votes_views_start_date:
-        votes_views_start_date = datetime.datetime.today() - datetime.timedelta(days=365 * 3)
+        votes_views_start_date = datetime.datetime.today() - datetime.timedelta(days=365 * 5)
     if type(votes_views_start_date) == str:
         votes_views_start_date = pd.datetime(votes_views_start_date)
 
