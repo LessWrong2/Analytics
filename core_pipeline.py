@@ -135,7 +135,8 @@ def get_collection_cleaned(coll_name, db,
             'voteType',
             'votedAt',
             'cancelled',
-            'isUnvote'
+            'isUnvote',
+            'authorId'
         ],
         'views': [
             'userId',
@@ -209,7 +210,7 @@ def get_collection_cleaned(coll_name, db,
     }
 
     if not votes_views_start_date:
-        votes_views_start_date = datetime.datetime.today() - datetime.timedelta(days=365 * 3)
+        votes_views_start_date = datetime.datetime.today() - datetime.timedelta(days=365 * 15)
     if type(votes_views_start_date) == str:
         votes_views_start_date = pd.datetime(votes_views_start_date)
 
@@ -429,6 +430,7 @@ def clean_raw_votes(votes):
     votes.loc[:, 'voteType'] = votes['voteType'].astype('category')
     votes.loc[:, 'votedAt'] = pd.to_datetime(votes['votedAt'])
     votes.loc[:, 'userId'] = votes['userId'].astype(str)
+    votes.loc[:, 'authorId'] = votes['authorId'].astype(str)
     votes = votes.drop(columns=['_id']) # unnecessary and takes up 200Mb
 
     return votes
