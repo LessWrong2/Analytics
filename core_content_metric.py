@@ -1,7 +1,7 @@
 import pandas as pd
-from utils import get_valid_views
+from utils import get_valid_views, timed
 
-
+@timed
 def calculate_core_content_metric_trend(core_content_views, start_date=None, end_date=None, posts_read_exponent=1, karma_exponent=1):
     if not start_date:
         start_date = core_content_views.index.min().date()
@@ -29,7 +29,7 @@ def calculate_core_content_metric_trend(core_content_views, start_date=None, end
 
     return pd.Series(core_content_metric)
 
-
+@timed
 def compute_core_content_metric(collections, start_date=None, end_date=None, posts_read_exponent=1.5, karma_exponent=1,
                                 included_collections=('rationality', 'codex', 'hpmor')):
 
