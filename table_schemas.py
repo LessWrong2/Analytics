@@ -140,6 +140,7 @@ table_creation_commands = {
         is_unvote       BOOLEAN     NOT NULL,
         af_power        smallint    NOT NULL,
         legacy          BOOLEAN     NOT NULL,
+        author_id       varchar(64) NOT NULL,
         birth           timestamp
     );""",
     'views': """CREATE TABLE views

@@ -135,7 +135,8 @@ def get_collection_cleaned(coll_name, db,
             'voteType',
             'votedAt',
             'cancelled',
-            'isUnvote'
+            'isUnvote',
+            'authorId'
         ],
         'views': [
             'userId',
@@ -429,6 +430,7 @@ def clean_raw_votes(votes):
     votes.loc[:, 'voteType'] = votes['voteType'].astype('category')
     votes.loc[:, 'votedAt'] = pd.to_datetime(votes['votedAt'])
     votes.loc[:, 'userId'] = votes['userId'].astype(str)
+    votes.loc[:, 'authorId'] = votes['authorId'].astype(str)
     votes = votes.drop(columns=['_id']) # unnecessary and takes up 200Mb
 
     return votes
