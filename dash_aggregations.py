@@ -4,6 +4,8 @@ import pickle
 from dataclasses import dataclass
 from typing import List, Tuple
 from datetime import datetime, timedelta
+
+from core_content_metric import compute_core_content_metric
 from google_analytics_ops import get_traffic_metrics
 from utils import get_valid_users, get_valid_posts, get_valid_comments, get_valid_votes, get_valid_views, print_and_log, timed, get_config_field
 from karmametric import compute_karma_metric
@@ -36,6 +38,7 @@ def generate_specs(collections):
 
     allVotes, _, _ = compute_karma_metric(collections) # calculate karma metric
     traffic_metrics = get_traffic_metrics()
+    core_content_metric = compute_core_content_metric(collections).reset_index()
 
     plot_specs = [
         PlotSpec(
@@ -45,6 +48,14 @@ def generate_specs(collections):
             agg_func='sum',
             agg_column='effect',
             color='red',
+        ),
+        PlotSpec(
+            title='Core Content Metric',
+            data=core_content_metric,
+            date_column='index',
+            agg_func='sum',
+            agg_column=0,
+            color='purple'
         ),
         PlotSpec(
             title='Accounts Created, {}+ posts_viewed'.format(minimum_post_views_for_users),
