@@ -1,0 +1,5 @@
+sns.set_context('talk')
+plt.figure(figsize=(8,5))
+data.sum(axis=0).plot.bar()
+# plt.xticks(rotation=45)
+plt.ylabel('hours')

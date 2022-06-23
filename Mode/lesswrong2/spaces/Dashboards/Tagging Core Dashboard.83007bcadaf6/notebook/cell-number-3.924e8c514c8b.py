@@ -1,0 +1,1 @@
+df['client_id'].nunique()

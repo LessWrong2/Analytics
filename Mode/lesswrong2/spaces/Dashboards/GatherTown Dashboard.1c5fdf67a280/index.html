@@ -1,0 +1,129 @@
+<link rel="stylesheet" href="https://mode.github.io/alamode/alamode.min.css">
+<script src="https://mode.github.io/alamode/alamode.min.js"></script>
+<div class="mode-header embed-hidden">
+  <h1>{{ title }}</h1>
+  <p>{{ description }}</p>
+</div>
+<div class="mode-grid container">
+  <div class="row">
+    <div class="col-md-12">
+      <mode-chart id="chart_5536ad920350" dataset="dataset" options="chart_options"></mode-chart>
+    </div>
+  </div>
+  <div class="row" data-row-height="medium">
+    <div class="col-md-12">
+      <mode-chart id="chart_5ea44445124d" dataset="dataset" options="chart_options"></mode-chart>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <mode-chart id="chart_b4a242613c33" dataset="dataset" options="chart_options"></mode-chart>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <mode-python id="python_c2d9c26de7ee" options="python_options"></mode-python>
+    </div>
+  </div>
+  <div class="row" data-row-height="large">
+    <div class="col-md-12">
+      <mode-python id="python_489a9ea984cc" options="python_options"></mode-python>
+    </div>
+  </div>
+  <div class="row" data-row-height="extra-large">
+    <div class="col-md-12">
+      <mode-chart id="chart_0f2ef0edd567" dataset="dataset" options="chart_options"></mode-chart>
+    </div>
+  </div>
+  <div class="row" data-row-height="extra-large">
+    <div class="col-md-12">
+      <mode-chart id="chart_5a12c466db30" dataset="dataset" options="chart_options"></mode-chart>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <mode-chart id="chart_ddb050207fb7" dataset="dataset" options="chart_options"></mode-chart>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <mode-chart id="chart_f95e18147894" dataset="dataset" options="chart_options"></mode-chart>
+    </div>
+  </div>
+  <div class="row" data-row-height="extra-large">
+    <div class="col-md-12">
+      <mode-chart id="chart_3013f94a1f30" dataset="dataset" options="chart_options"></mode-chart>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <mode-chart id="chart_f21746f93c9c" dataset="dataset" options="chart_options"></mode-chart>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <mode-chart id="chart_7b78b291e85e" dataset="dataset" options="chart_options"></mode-chart>
+    </div>
+  </div>
+  <div class="row" data-row-height="medium">
+    <div class="col-md-12">
+      <mode-table id="table_0ac21b471e39" dataset="dataset" options="table_options"></mode-table>
+    </div>
+  </div>
+  <div class="row" data-row-height="medium">
+    <div class="col-md-12">
+      <mode-table id="table_4a50f32b3af3" dataset="dataset" options="table_options"></mode-table>
+    </div>
+  </div>
+</div>
+<script>
+  alamode.customizeTable([{
+    vizId: 'b4a242613c33',
+    formatByColumn: {
+      columns: [{
+          name: 'session_duration_min',
+          rules: [{
+              type: '<',
+              value: 10,
+              color: '#ffbfa6'
+            },
+            {
+              type: '>',
+              value: 30,
+              color: '#deff8a'
+            },
+            {
+              type: '===',
+              value: 115344,
+              color: '#EFDC05'
+            },
+          ]
+        },
+        {
+          name: 'is_first_visit',
+          rules: [{
+            type: '===',
+            value: true,
+            color: '#deff8a'
+          }]
+        },
+        {
+          name: 'alone_at_start',
+          rules: [{
+            type: '===',
+            value: true,
+            color: '#ffbfa6'
+          }]
+        },
+        {
+          name: 'percent_accompanied',
+          rules: [{
+            type: '<',
+            value: 0.2,
+            color: '#f08278'
+          }]
+        },
+      ]
+    }
+  }])
+</script>

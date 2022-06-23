@@ -1,0 +1,63 @@
+<link rel="stylesheet" href="https://mode.github.io/alamode/alamode.min.css">
+<script src="https://mode.github.io/alamode/alamode.min.js"></script>
+<div class="mode-header embed-hidden">
+  <h1>{{ title }}</h1>
+  <p>{{ description }}</p>
+</div>
+<div class="mode-grid container">
+  <div class="row" data-row-height="medium">
+    <div class="col-md-12">
+      <mode-chart id="chart_71f7f3a8afaa" dataset="dataset" options="chart_options"></mode-chart>
+    </div>
+  </div>
+  <div class="row" data-row-height="small">
+    <div class="col-md-12">
+      <mode-chart id="chart_6fe364123999" dataset="dataset" options="chart_options"></mode-chart>
+    </div>
+  </div>
+  <div class="row" data-row-height="small">
+    <div class="col-md-3">
+      <mode-table id="table_5b3c1d2fd9d0" dataset="dataset" options="table_options"></mode-table>
+    </div>
+    <div class="col-md-3">
+      <mode-table id="table_59738e819be6" dataset="dataset" options="table_options"></mode-table>
+    </div>
+    <div class="col-md-3">
+      <mode-table id="table_55f5a4bed537" dataset="dataset" options="table_options"></mode-table>
+    </div>
+    <div class="col-md-3">
+      <mode-table id="table_146a0883ff27" dataset="dataset" options="table_options"></mode-table>
+    </div>
+  </div>
+  <div class="row" data-row-height="large">
+    <div class="col-md-4">
+      <mode-table id="table_2ac0b25d2b8c" dataset="dataset" options="table_options"></mode-table>
+    </div>
+    <div class="col-md-8"></div>
+  </div>
+</div>
+<script>
+  alamode.customizeTable(
+    [{
+      vizId: '6fe364123999',
+      formatByColumn: {
+        columns: [{
+          name: 'days_since_latest',
+          rules: [{
+              type: '>',
+              value: 0,
+              color: '#f5a4a4'
+            },
+            {
+              type: '<',
+              value: 1,
+              color: '#c7edbb'
+            }
+          ]
+        }]
+      }
+    }]
+
+
+  )
+</script>
