@@ -141,9 +141,9 @@ def layout():
                 id='date-picker-range',
                 display_format="YYYY-MM-DD",
                 min_date_allowed=date(2009, 1, 1),
-                max_date_allowed=date(2022,1,1),
-                initial_visible_month=date(2021, 1, 1),
-                start_date=date.today() - timedelta(28),
+                max_date_allowed=date(2023,1,1),
+                initial_visible_month=date(2022, 1, 1),
+                start_date=date.today() - timedelta(90),
                 end_date=date.today()
             ),
             html.Div(className='update-button-container', children=[
