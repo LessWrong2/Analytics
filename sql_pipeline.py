@@ -32,9 +32,9 @@ def execute_sql_commands(array_of_commands, conn=None):
 def drop_materialized_views():
 
     execute_sql_commands([
-        'drop_ssrs_cleaned_materialized_view',
+        'drop_user_day_post_views_materialized_view',
         'drop_core_events_cleaned_materialized_view',
-        'drop_user_day_post_views'
+        'drop_ssrs_cleaned_materialized_view',
     ])
 
 

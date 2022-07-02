@@ -39,7 +39,7 @@ pipeline_commands = {
         FROM raw
         WHERE event ->> 'userAgent' !~* 'Amazon-Route53|HealthCheck|Health_check|bot|spider|crawler|yeti|mastodon' AND
             event_type = 'ssr'
-          AND timestamp > current_date - INTERVAL '3 days';""",
+          AND timestamp > current_date - INTERVAL '30 days';""",
 
     'refresh_ssrs_cleaned_materialized_view': """REFRESH MATERIALIZED VIEW ssrs_cleaned""",
     'drop_ssrs_cleaned_materialized_view': """DROP MATERIALIZED VIEW ssrs_cleaned""",
@@ -48,7 +48,7 @@ pipeline_commands = {
         SELECT lrs.*, ab_test_group FROM
         lessraw_small lrs
         JOIN ssrs_cleaned USING (tab_id)
-        WHERE lrs.timestamp > current_date - INTERVAL '3 days'
+        WHERE lrs.timestamp > current_date - INTERVAL '30 days'
         AND lrs.event_type IN ('pageLoadFinished', 'navigate', 'linkClicked');""",
 
     'refresh_core_events_cleaned_materialized_view': """REFRESH MATERIALIZED VIEW core_events_cleaned""",
@@ -64,7 +64,7 @@ pipeline_commands = {
                   array_agg(DISTINCT tab_id)   AS tab_ids
             FROM core_events_cleaned
             WHERE event_type IN ('navigate', 'pageLoadFinished')
-              AND timestamp > current_date - INTERVAL '3 days'
+              AND timestamp > current_date - INTERVAL '30 days'
             GROUP BY 1, 2, 3, 4
         ),
             aggregated_to_post AS (
