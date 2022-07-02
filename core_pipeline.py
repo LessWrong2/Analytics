@@ -18,7 +18,7 @@ from dash_aggregations import run_dash_aggregations_pipeline
 from postgres_ops import run_pg_pandas_transfer
 from google_analytics_ops import run_ga_pipeline
 from url_parsing import run_url_table_update
-from gather_town_pipeline import run_gather_town_pipeline
+from sql_pipeline import run_postgres_pipeline
 from utils import timed, print_and_log, get_config_field, get_valid_users, get_valid_posts, \
     get_valid_comments, get_valid_votes, get_valid_views, get_collection, get_mongo_db_object
 
@@ -827,7 +827,7 @@ def enrich_collections(colls_dfs,
 @timed
 def run_core_pipeline(date_str, from_file=False, clean_up=True, dash=True, gsheets=True,
                       metrics=True, postgres=True, tags=True, ga=True, urls=True,
-                      gather_town=True, limit=None):
+                      postgres_pipeline=True, limit=None):
     # ##1. LOAD DATA
     if from_file:
         dfs_enriched = load_from_file(date_str)
@@ -863,9 +863,9 @@ def run_core_pipeline(date_str, from_file=False, clean_up=True, dash=True, gshee
     if urls:
         run_url_table_update(dfs_enriched)
 
-    # ##8. GATHER TOWN
-    if gather_town:
-        run_gather_town_pipeline()
+    # ##9. RUN THE POSTGRES INTERNAL PIPELINE
+    if postgres_pipeline:
+        run_postgres_pipeline()
 
     # ##9. CLEAN UP OLD FILES TO SAVE SPACE
     if clean_up:
@@ -883,6 +883,5 @@ if __name__ == '__main__':
                       postgres=True,
                       ga=True,
                       urls=True,
-                      gather_town=True,
                       clean_up=True
                       )
