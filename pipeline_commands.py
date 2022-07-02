@@ -39,7 +39,16 @@ pipeline_commands = {
         FROM raw
         WHERE event ->> 'userAgent' !~* 'Amazon-Route53|HealthCheck|Health_check|bot|spider|crawler|yeti|mastodon' AND
             event_type = 'ssr'
-          AND timestamp > current_date - INTERVAL '30 days';""",
+          AND timestamp > current_date - INTERVAL '30 days';
+          
+        create index ssrs_cleaned__timestamp
+            on ssrs_cleaned (timestamp);
+
+        create index ssrs_cleaned__tab_id
+            on ssrs_cleaned (tab_id);
+
+        create index ssrs_cleaned__user_agent_hash
+            on ssrs_cleaned (md5(user_agent));""",
 
     'refresh_ssrs_cleaned_materialized_view': """REFRESH MATERIALIZED VIEW ssrs_cleaned""",
     'drop_ssrs_cleaned_materialized_view': """DROP MATERIALIZED VIEW ssrs_cleaned""",
@@ -49,7 +58,22 @@ pipeline_commands = {
         lessraw_small lrs
         JOIN ssrs_cleaned USING (tab_id)
         WHERE lrs.timestamp > current_date - INTERVAL '30 days'
-        AND lrs.event_type IN ('pageLoadFinished', 'navigate', 'linkClicked');""",
+        AND lrs.event_type IN ('pageLoadFinished', 'navigate', 'linkClicked');
+        
+        create index core_events_cleaned__timestamp
+            on core_events_cleaned (timestamp);
+
+        create index core_events_cleaned__user_id
+            on core_events_cleaned (user_id);
+
+        create index core_events_cleaned__client_id
+            on core_events_cleaned (client_id);
+
+        create index core_events_cleaned__url_hash
+            on core_events_cleaned (md5(url_to));
+
+        create index core_events_cleaned__event_type
+            on core_events_cleaned (event_type);""",
 
     'refresh_core_events_cleaned_materialized_view': """REFRESH MATERIALIZED VIEW core_events_cleaned""",
     'drop_core_events_cleaned_materialized_view': """DROP MATERIALIZED VIEW core_events_cleaned""",
@@ -95,7 +119,6 @@ pipeline_commands = {
         create index user_day_post_views__index_user_client_id
             on user_day_post_views (user_client_id);
 
-
         create index user_day_post_views__index_document_id
             on user_day_post_views (document_id);
 
@@ -108,50 +131,3 @@ pipeline_commands = {
     'refresh_user_day_post_views_materialized_view': """REFRESH MATERIALIZED VIEW user_day_post_views""",
     'drop_user_day_post_views_materialized_view': """DROP MATERIALIZED VIEW user_day_post_views""",
 }
-
-
-
-
-#
-# create index ssrs_cleaned__timestamp
-#     on ssrs_cleaned (timestamp);
-#
-# create index ssrs_cleaned__tab_id
-#     on ssrs_cleaned (tab_id);
-#
-# create index ssrs_cleaned__user_agent_hash
-#     on ssrs_cleaned (md5(user_agent));
-#
-#
-# create index user_day_post_views__index_date
-#     on user_day_post_views (date);
-#
-# create index user_day_post_views__index_user_client_id
-#     on user_day_post_views (user_client_id);
-#
-# create index user_day_post_views__index_document_id
-#     on user_day_post_views (document_id);
-#
-# create unique index user_day_post_views__index_uuid
-#     on user_day_post_views (uuid);
-#
-# create index user_day_post_views__index_logged_in
-#     on user_day_post_views (logged_in);
-#
-#
-# create index core_events_cleaned__timestamp
-#     on core_events_cleaned (timestamp)
-#
-# create index core_events_cleaned__user_id
-#     on core_events_cleaned (user_id)
-#
-# create index core_events_cleaned__client_id
-#     on core_events_cleaned (client_id)
-#
-# create index core_events_cleaned__url_hash
-#     on core_events_cleaned (md5(url_to))
-#
-# create index core_events_cleaned__event_type
-#     on core_events_cleaned (event_type)
-
-
