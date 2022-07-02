@@ -39,7 +39,7 @@ def drop_materialized_views():
 
 
 def run_postgres_pipeline():
-    # execute_sql_commands(['update_lessraw_small', 'update_lessraw_medium'])
+    execute_sql_commands(['update_lessraw_small', 'update_lessraw_medium'])
 
     execute_sql_commands([
         'refresh_ssrs_cleaned_materialized_view',
