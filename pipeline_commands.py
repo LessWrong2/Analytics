@@ -22,7 +22,7 @@ pipeline_commands = {
                                  'idlenessDetection')) latest
         WHERE NOT EXISTS(SELECT 1 FROM lessraw_medium existing WHERE existing.uuid = latest.uuid);""",
 
-    'create_ssrs_cleaned_materialized_view': """CREATE MATERIALIZED VIEW ssrs_cleaned AS
+    'create_ssrs_cleaned_table': """CREATE TABLE ssrs_cleaned AS
         SELECT environment,
               event_type,
               timestamp,
@@ -50,10 +50,10 @@ pipeline_commands = {
         create index ssrs_cleaned__user_agent_hash
             on ssrs_cleaned (md5(user_agent));""",
 
-    'refresh_ssrs_cleaned_materialized_view': """REFRESH MATERIALIZED VIEW ssrs_cleaned""",
-    'drop_ssrs_cleaned_materialized_view': """DROP MATERIALIZED VIEW ssrs_cleaned""",
+    'refresh_ssrs_cleaned_table': """REFRESH TABLE ssrs_cleaned""",
+    'drop_ssrs_cleaned_table': """DROP TABLE ssrs_cleaned""",
 
-    'create_core_events_cleaned_materialized_view': """CREATE MATERIALIZED VIEW core_events_cleaned AS
+    'create_core_events_cleaned_table': """CREATE TABLE core_events_cleaned AS
         SELECT lrs.*, ab_test_group FROM
         lessraw_small lrs
         JOIN ssrs_cleaned USING (tab_id)
@@ -75,10 +75,10 @@ pipeline_commands = {
         create index core_events_cleaned__event_type
             on core_events_cleaned (event_type);""",
 
-    'refresh_core_events_cleaned_materialized_view': """REFRESH MATERIALIZED VIEW core_events_cleaned""",
-    'drop_core_events_cleaned_materialized_view': """DROP MATERIALIZED VIEW core_events_cleaned""",
+    'refresh_core_events_cleaned_table': """REFRESH TABLE core_events_cleaned""",
+    'drop_core_events_cleaned_table': """DROP TABLE core_events_cleaned""",
 
-    'create_user_day_post_views_materialized_view': """CREATE MATERIALIZED VIEW user_day_post_views AS
+    'create_user_day_post_views_table': """CREATE TABLE user_day_post_views AS
         WITH user_day_post_views AS (
             SELECT DATE_TRUNC('day', timestamp) AS date,
                   COALESCE(user_id, client_id) AS user_client_id,
@@ -128,6 +128,6 @@ pipeline_commands = {
         create index user_day_post_views__index_logged_in
             on user_day_post_views (logged_in);""",
 
-    'refresh_user_day_post_views_materialized_view': """REFRESH MATERIALIZED VIEW user_day_post_views""",
-    'drop_user_day_post_views_materialized_view': """DROP MATERIALIZED VIEW user_day_post_views""",
+    'refresh_user_day_post_views_table': """REFRESH TABLE user_day_post_views""",
+    'drop_user_day_post_views_table': """DROP TABLE user_day_post_views""",
 }
