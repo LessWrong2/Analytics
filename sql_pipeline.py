@@ -29,21 +29,24 @@ def execute_sql_commands(array_of_commands, conn=None):
         with conn.begin():
             run_commands(array_of_commands, conn)
 
-def drop_materialized_views():
+def drop_tables():
 
     execute_sql_commands([
-        'drop_user_day_post_views_materialized_view',
-        'drop_core_events_cleaned_materialized_view',
-        'drop_ssrs_cleaned_materialized_view',
+        'drop_user_day_post_views_table',
+        'drop_core_events_cleaned_table',
+        'drop_ssrs_cleaned_table',
     ])
 
 
 def run_postgres_pipeline():
-    execute_sql_commands(['update_lessraw_small', 'update_lessraw_medium'])
+    # execute_sql_commands(['update_lessraw_small', 'update_lessraw_medium'])
 
     execute_sql_commands([
-        'refresh_ssrs_cleaned_materialized_view',
-        'refresh_core_events_cleaned_materialized_view',
-        'refresh_user_day_post_views_materialized_view'
+        'drop_ssrs_cleaned_table',
+        'create_ssrs_cleaned_table',
+        'drop_core_events_cleaned_table',
+        'create_core_events_cleaned_table',
+        'drop_user_day_post_views_table'
+        'create_user_day_post_views_table'
     ])
 
