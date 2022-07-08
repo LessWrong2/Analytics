@@ -58,8 +58,8 @@ pipeline_commands = {
         lessraw_small lrs
         JOIN ssrs_cleaned USING (tab_id)
         WHERE lrs.timestamp > current_date - INTERVAL '30 days'
-        AND lrs.event_type IN ('pageLoadFinished', 'navigate', 'linkClicked');
-        AND NOT user_id IN ('nLbwLhBaQeG6tCNDN', 'qgdGA4ZEyW7zNdK84', 'EQNTWXLKMeWMp2FQS', 'r38pkCm7wF4M44MDQ', 'XtphY3uYHwruKqDyG', 'XNzMjdjYwoad6Hig3', 'grecHJcgkb3KW5wnM')
+        AND lrs.event_type IN ('pageLoadFinished', 'navigate', 'linkClicked')
+        AND lrs.user_id NOT IN ('nLbwLhBaQeG6tCNDN', 'qgdGA4ZEyW7zNdK84', 'EQNTWXLKMeWMp2FQS', 'r38pkCm7wF4M44MDQ', 'XtphY3uYHwruKqDyG', 'XNzMjdjYwoad6Hig3', 'grecHJcgkb3KW5wnM');
         
         create index core_events_cleaned__timestamp
             on core_events_cleaned (timestamp);
