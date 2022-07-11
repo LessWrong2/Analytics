@@ -39,14 +39,14 @@ def drop_tables():
 
 
 def run_postgres_pipeline():
-    # execute_sql_commands(['update_lessraw_small', 'update_lessraw_medium'])
+    execute_sql_commands(['update_lessraw_small', 'update_lessraw_medium'])
 
     execute_sql_commands([
         'drop_ssrs_cleaned_table',
         'create_ssrs_cleaned_table',
         'drop_core_events_cleaned_table',
         'create_core_events_cleaned_table',
-        'drop_user_day_post_views_table'
+        'drop_user_day_post_views_table',
         'create_user_day_post_views_table'
     ])
 

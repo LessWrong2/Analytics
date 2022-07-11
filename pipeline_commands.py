@@ -54,12 +54,15 @@ pipeline_commands = {
     'drop_ssrs_cleaned_table': """DROP TABLE ssrs_cleaned""",
 
     'create_core_events_cleaned_table': """CREATE TABLE core_events_cleaned AS
-        SELECT lrs.*, ab_test_group FROM
+        SELECT lrs.*, 
+        lrs.user_id IN ('nLbwLhBaQeG6tCNDN', 'qgdGA4ZEyW7zNdK84', 'EQNTWXLKMeWMp2FQS', 'r38pkCm7wF4M44MDQ', 'XtphY3uYHwruKqDyG', 'XNzMjdjYwoad6Hig3', 'grecHJcgkb3KW5wnM') AS lw_team_member,
+        ab_test_group, 
+        FROM
         lessraw_small lrs
         JOIN ssrs_cleaned USING (tab_id)
         WHERE lrs.timestamp > current_date - INTERVAL '30 days'
         AND lrs.event_type IN ('pageLoadFinished', 'navigate', 'linkClicked')
-        AND (lrs.user_id NOT IN ('nLbwLhBaQeG6tCNDN', 'qgdGA4ZEyW7zNdK84', 'EQNTWXLKMeWMp2FQS', 'r38pkCm7wF4M44MDQ', 'XtphY3uYHwruKqDyG', 'XNzMjdjYwoad6Hig3', 'grecHJcgkb3KW5wnM') OR lrs.user_id IS NULL);
+        AND environment != 'development';
         
         create index core_events_cleaned__timestamp
             on core_events_cleaned (timestamp);
