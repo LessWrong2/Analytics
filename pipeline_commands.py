@@ -55,14 +55,15 @@ pipeline_commands = {
 
     'create_core_events_cleaned_table': """CREATE TABLE core_events_cleaned AS
         SELECT lrs.*, 
-        lrs.user_id IN ('nLbwLhBaQeG6tCNDN', 'qgdGA4ZEyW7zNdK84', 'EQNTWXLKMeWMp2FQS', 'r38pkCm7wF4M44MDQ', 'XtphY3uYHwruKqDyG', 'XNzMjdjYwoad6Hig3', 'grecHJcgkb3KW5wnM') AS lw_team_member,
-        ab_test_group, 
+        lrs.user_id IN ('nLbwLhBaQeG6tCNDN', 'qgdGA4ZEyW7zNdK84', 'EQNTWXLKMeWMp2FQS', 'r38pkCm7wF4M44MDQ', 'XtphY3uYHwruKqDyG', 'XNzMjdjYwoad6Hig3', 'grecHJcgkb3KW5wnM') AS lw_team_member_actual,
+        ab_test_group,
+        current_timestamp AS birth
         FROM
         lessraw_small lrs
         JOIN ssrs_cleaned USING (tab_id)
         WHERE lrs.timestamp > current_date - INTERVAL '30 days'
         AND lrs.event_type IN ('pageLoadFinished', 'navigate', 'linkClicked')
-        AND environment != 'development';
+        AND lrs.environment != 'development';
         
         create index core_events_cleaned__timestamp
             on core_events_cleaned (timestamp);
@@ -87,18 +88,21 @@ pipeline_commands = {
             SELECT DATE_TRUNC('day', timestamp) AS date,
                   COALESCE(user_id, client_id) AS user_client_id,
                   user_id IS NOT NULL          AS logged_in,
+                  lw_team_member_actual,
                   md5(url_to)                  AS url_hash,
                   COUNT(*)                     AS num_views,
-                  array_agg(DISTINCT tab_id)   AS tab_ids
+                  array_agg(DISTINCT tab_id)   AS tab_ids,
+                  current_timestamp            AS birth
             FROM core_events_cleaned
             WHERE event_type IN ('navigate', 'pageLoadFinished')
               AND timestamp > current_date - INTERVAL '30 days'
-            GROUP BY 1, 2, 3, 4
+            GROUP BY 1, 2, 3, 4, 5
         ),
             aggregated_to_post AS (
                 SELECT date,
                         user_client_id,
                         logged_in,
+                        lw_team_member_actual,
                         tab_ids,
                         document_id,
                         title,
@@ -107,7 +111,7 @@ pipeline_commands = {
                 FROM user_day_post_views
                           JOIN urls USING (url_hash)
                 WHERE urls.type = 'post'
-                GROUP BY 1, 2, 3, 4, 5, 6
+                GROUP BY 1, 2, 3, 4, 5, 6,7
             ),
             with_uuid AS (
                 SELECT *,
