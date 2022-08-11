@@ -1,6 +1,6 @@
 schemaVersion: 1
 meta:
-  sourceVersionId: 8e6a2973-4151-48bd-adaa-571c7d9de954 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  sourceVersionId: 1a5261f3-5ec2-46e3-9752-b63ab3a2a066 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
   description: null
   projectId: f680bd08-31a2-445c-8b97-c861ff5d88e6 # DO NOT CHANGE - Unique ID of the project from which this file was generated
   title: Test Project 1
@@ -57,6 +57,23 @@ cells:
         byLayer:
           - selectedDataFrameVariableName: user_data
       defaultInputTimezone: America/Los_Angeles
+  - cellId: 6544289d-57e6-4a6e-bba3-81509473e3ad # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: SQL
+    config:
+      source: |-
+        --HERE IS ANOTHER TEST CELL
+        SELECT * FROM posts LIMIT 10
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig: null
 appLayout:
   fullWidth: false
   visibleMetadataFields:
