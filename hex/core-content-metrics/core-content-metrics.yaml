@@ -1,0 +1,194 @@
+schemaVersion: 1
+meta:
+  sourceVersionId: d8c3bfe8-f1a1-4c1b-9064-1a6621bb5a5a # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  description: ""
+  projectId: a092be86-c4c9-47a4-b7c5-f192f84802a9 # DO NOT CHANGE - Unique ID of the project from which this file was generated
+  title: Core Content Metrics
+  timezone: null
+  codeLanguage: PYTHON
+  status:
+    name: In Progress
+projectAssets: {}
+sharedAssets:
+  dataConnections:
+    - dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e # LessWrong Analytics DB (postgres)
+cells:
+  - cellId: a40cdc75-8316-4678-8a24-c9bec591da5f # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: SQL
+    config:
+      source: |-
+        SELECT 
+        *,
+        num_views - LAG(num_views, 1) OVER (PARTITION BY logged_in, core_reading, lw_team_member_actual ORDER BY date) AS num_views_diff,
+        num_users - LAG(num_users, 1) OVER (PARTITION BY logged_in, core_reading, lw_team_member_actual ORDER BY date) AS num_users_diff,
+        num_distinct_posts - LAG(num_distinct_posts, 1) OVER (PARTITION BY logged_in, core_reading, lw_team_member_actual ORDER BY date) AS num_distinct_posts_diff
+        FROM
+        (
+        SELECT
+          date,
+          logged_in,
+          lw_team_member_actual,
+          weighting IS NOT NULL AS core_reading,
+          SUM(num_views) AS num_views,
+          COUNT(DISTINCT user_client_id) AS num_users,
+          COUNT(DISTINCT document_id) AS num_distinct_posts
+        FROM
+          user_day_post_views udpv
+          LEFT JOIN core_readings cr ON cr._id = udpv.document_id
+          WHERE date < current_date
+        GROUP BY
+          1,
+          2,
+          3,
+          4
+          
+        ORDER BY
+          lw_team_member_actual DESC,
+          logged_in,
+          date,
+          weighting IS NOT NULL
+          ) sub
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe
+      enableCache: true
+      runOnLoad: false
+      runOnSchedule: true
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig: null
+  - cellId: 133594aa-c074-4d09-9f7b-0643ad4fb311 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: CODE
+    config:
+      source: core_reading_views = dataframe[dataframe['core_reading']]
+  - cellId: 547427b3-7e80-4060-bac7-537abb796e21 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Core Reading Views (logged-in vs logged-out)
+    cellType: CHART
+    config:
+      height: null
+      vegaSpec:
+        $schema: https://vega.github.io/schema/vega-lite/v5.json
+        layer:
+          - data:
+              name: layer00
+            mark:
+              type: area
+              clip: true
+              tooltip: true
+              point: false
+            encoding:
+              x:
+                field: date
+                type: temporal
+                timeUnit: yearmonthdate
+                title: " "
+              y:
+                field: num_views
+                type: quantitative
+                aggregate: sum
+              color:
+                field: logged_in
+                type: nominal
+        resolve:
+          scale: {}
+        datasets:
+          layer00:
+            - name: dummy
+              value: 0
+      selectedLayerIndex: 0
+      metadata:
+        byLayer:
+          - selectedDataFrameVariableName: core_reading_views
+      defaultInputTimezone: America/Los_Angeles
+  - cellId: e73ba7dc-8479-4742-91d7-7dfbfa744de8 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Views of ALL posts (logged-in vs logged-out)
+    cellType: CHART
+    config:
+      height: null
+      vegaSpec:
+        $schema: https://vega.github.io/schema/vega-lite/v5.json
+        layer:
+          - data:
+              name: layer00
+            mark:
+              type: area
+              clip: true
+              tooltip: true
+              point: false
+            encoding:
+              x:
+                field: date
+                type: temporal
+                timeUnit: yearmonthdate
+                title: " "
+              y:
+                field: num_views
+                type: quantitative
+                aggregate: sum
+              color:
+                field: logged_in
+                type: nominal
+        resolve:
+          scale: {}
+        datasets:
+          layer00:
+            - name: dummy
+              value: 0
+      selectedLayerIndex: 0
+      metadata:
+        byLayer:
+          - selectedDataFrameVariableName: dataframe
+      defaultInputTimezone: America/Los_Angeles
+  - cellId: 602aae94-3e41-43de-a21e-a8404ce0cfff # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: All Post Views vs Core Reading Post Views
+    cellType: CHART
+    config:
+      height: null
+      vegaSpec:
+        $schema: https://vega.github.io/schema/vega-lite/v5.json
+        layer:
+          - data:
+              name: layer00
+            mark:
+              type: area
+              clip: true
+              tooltip: true
+              point: false
+            encoding:
+              x:
+                field: date
+                type: temporal
+                timeUnit: yearmonthdate
+                title: " "
+              y:
+                field: num_views
+                type: quantitative
+                aggregate: sum
+              color:
+                field: core_reading
+                type: nominal
+        resolve:
+          scale: {}
+        datasets:
+          layer00:
+            - name: dummy
+              value: 0
+      selectedLayerIndex: 0
+      metadata:
+        byLayer:
+          - selectedDataFrameVariableName: dataframe
+      defaultInputTimezone: America/Los_Angeles
+appLayout:
+  fullWidth: false
+  visibleMetadataFields:
+    - NAME
+    - DESCRIPTION
+    - AUTHOR
+    - LAST_EDITED
+    - CATEGORIES
+    - STATUS
+    - TABLE_OF_CONTENTS
+  rows: []
