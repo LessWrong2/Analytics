@@ -1,11 +1,15 @@
 schemaVersion: 1
 meta:
-  sourceVersionId: 8d558d7c-4356-484b-9907-f9f373c19a0c # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  sourceVersionId: 70a31a98-91a8-4f44-a05c-fec05c10cbff # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
   description: null
   projectId: 1a57c85c-95ba-4562-83cf-0652c13b738e # DO NOT CHANGE - Unique ID of the project from which this file was generated
   title: Trends in Core Tags
   timezone: null
   codeLanguage: PYTHON
+  status:
+    name: Production
+  categories:
+    - name: Tagging
 projectAssets: {}
 sharedAssets:
   dataConnections:
