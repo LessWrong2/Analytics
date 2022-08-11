@@ -1,6 +1,6 @@
 schemaVersion: 1
 meta:
-  sourceVersionId: 1805c248-f541-4d41-9bdc-f328767eced4 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  sourceVersionId: be4c7768-9bf3-42c8-bc87-953c42a740fc # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
   description: ""
   projectId: a092be86-c4c9-47a4-b7c5-f192f84802a9 # DO NOT CHANGE - Unique ID of the project from which this file was generated
   title: Core Content Metrics
@@ -58,7 +58,64 @@ cells:
       useRichDisplay: false
       sqlCellOutputType: PANDAS
       useQueryMode: false
-      tableDisplayConfig: null
+      tableDisplayConfig:
+        pageSize: 12
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties:
+          - originalName: date
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: logged_in
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: lw_team_member_actual
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: core_reading
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_views
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_users
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_distinct_posts
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_views_diff
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_users_diff
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_distinct_posts_diff
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
   - cellId: 133594aa-c074-4d09-9f7b-0643ad4fb311 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
     cellLabel: null
     cellType: CODE
