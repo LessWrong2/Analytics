@@ -1,6 +1,6 @@
 schemaVersion: 1
 meta:
-  sourceVersionId: 1a5261f3-5ec2-46e3-9752-b63ab3a2a066 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  sourceVersionId: a99e2eeb-accd-4a80-adc2-753cca4f7281 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
   description: null
   projectId: f680bd08-31a2-445c-8b97-c861ff5d88e6 # DO NOT CHANGE - Unique ID of the project from which this file was generated
   title: Test Project 1
@@ -74,6 +74,11 @@ cells:
       sqlCellOutputType: PANDAS
       useQueryMode: false
       tableDisplayConfig: null
+  - cellId: 79292cbd-94d8-48ac-b5a6-118c8857af49 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: CODE
+    config:
+      source: "# this is seeming kind of annoying, bad as the rest"
 appLayout:
   fullWidth: false
   visibleMetadataFields:
