@@ -1,0 +1,78 @@
+schemaVersion: 1
+meta:
+  sourceVersionId: 34362769-df26-4940-97cd-070d8da0cc5f # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  description: null
+  projectId: f680bd08-31a2-445c-8b97-c861ff5d88e6 # DO NOT CHANGE - Unique ID of the project from which this file was generated
+  title: Test Project 1
+  timezone: null
+  codeLanguage: PYTHON
+  status:
+    name: Exploratory
+projectAssets: {}
+sharedAssets:
+  dataConnections:
+    - dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e # LessWrong Analytics DB (postgres)
+cells:
+  - cellId: 2756a71f-7a36-4390-8379-a647120598ae # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: SQL
+    config:
+      source: SELECT * FROM public.users LIMIT 100
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: user_data
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig: null
+  - cellId: 3673fb21-a86e-48df-86fc-dd59913614be # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: CHART
+    config:
+      height: null
+      vegaSpec:
+        $schema: https://vega.github.io/schema/vega-lite/v5.json
+        layer:
+          - data:
+              name: layer00
+            mark:
+              tooltip: true
+              type: bar
+              clip: true
+            encoding:
+              x:
+                field: created_at
+                type: temporal
+        resolve:
+          scale: {}
+        datasets:
+          layer00:
+            - name: dummy
+              value: 0
+      selectedLayerIndex: 0
+      metadata:
+        byLayer:
+          - selectedDataFrameVariableName: user_data
+      defaultInputTimezone: America/Los_Angeles
+appLayout:
+  fullWidth: false
+  visibleMetadataFields:
+    - NAME
+    - DESCRIPTION
+    - AUTHOR
+    - LAST_EDITED
+    - CATEGORIES
+    - STATUS
+    - TABLE_OF_CONTENTS
+  rows:
+    - columns:
+        - start: 0
+          end: 120
+          elements:
+            - type: CELL
+              cellId: 3673fb21-a86e-48df-86fc-dd59913614be
+              height: null
+              showLabel: true
