@@ -1,0 +1,280 @@
+schemaVersion: 1
+meta:
+  sourceVersionId: 8d558d7c-4356-484b-9907-f9f373c19a0c # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  description: null
+  projectId: 1a57c85c-95ba-4562-83cf-0652c13b738e # DO NOT CHANGE - Unique ID of the project from which this file was generated
+  title: Trends in Core Tags
+  timezone: null
+  codeLanguage: PYTHON
+projectAssets: {}
+sharedAssets:
+  dataConnections:
+    - dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e # LessWrong Analytics DB (postgres)
+cells:
+  - cellId: 0e366df5-02a3-45b3-9fd4-73fea8cfbd82 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Start Date
+    cellType: INPUT
+    config:
+      inputType: DATE
+      name: start_date
+      outputType: DATETIME
+      options:
+        enableTime: false
+        showRelativeDates: false
+      defaultValue:
+        dateString: 01/01/2021
+  - cellId: a10d7fa2-2b70-4549-867b-18d3e4708088 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Minimum Post Karma
+    cellType: INPUT
+    config:
+      inputType: NUMERIC_INPUT
+      name: minimum_post_karma
+      outputType: NUMBER
+      options:
+        increment: 1
+      defaultValue: 75
+  - cellId: 7c7ce142-fd80-4e30-bcf1-54658c1bc8eb # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: SQL
+    config:
+      source: |-
+        WITH posts_tagged AS (
+            SELECT posts.title, tags.name, posts.posted_at
+            FROM public.posts posts
+            JOIN public.tagrels tagrels ON tagrels.post_id = posts._id
+            RIGHT JOIN public.tags tags ON tagrels.tag_id = tags._id
+            WHERE tags.core IS TRUE AND posts.draft IS FALSE AND posts.base_score >= {{minimum_post_karma}}
+            ORDER BY posted_at
+        ),
+        posts_aggregated_period AS (
+            SELECT DATE_TRUNC('month', posted_at) AS month, name, COUNT(*) as num_posts
+            FROM posts_tagged
+            GROUP BY month, name
+            ORDER BY month, name
+        ),
+        total_posts_per_period AS (
+            SELECT DATE_TRUNC('month', posted_at) as month , COUNT(*) AS num_total_posts
+            FROM posts_tagged
+            GROUP BY month
+            ORDER BY month DESC
+        )
+        SELECT *, num_posts*1.0/num_total_posts AS percentage_total FROM 
+        posts_aggregated_period pap
+        JOIN total_posts_per_period tp USING (month)
+        WHERE month >= {{start_date}} AND month < DATE_TRUNC('month', current_date)
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: true
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig:
+        pageSize: 12
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties:
+          - originalName: count
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_posts
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: percentage_total
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: month
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: name
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_total_posts
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+  - cellId: 44ab94cc-439c-4e01-a0a0-fc676e0002d3 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Number of Posts by Core Tag
+    cellType: CHART
+    config:
+      height: null
+      vegaSpec:
+        $schema: https://vega.github.io/schema/vega-lite/v5.json
+        layer:
+          - data:
+              name: layer00
+            mark:
+              type: line
+              clip: true
+              tooltip: false
+            encoding:
+              x:
+                field: month
+                type: temporal
+                title: " "
+                timeUnit: yearmonth
+              y:
+                field: num_posts
+                type: quantitative
+                title: Number of Posts (monthly)
+              color:
+                field: name
+                type: nominal
+        resolve:
+          scale: {}
+        datasets:
+          layer00:
+            - name: dummy
+              value: 0
+      selectedLayerIndex: 0
+      metadata:
+        byLayer:
+          - selectedDataFrameVariableName: dataframe
+      defaultInputTimezone: UTC
+  - cellId: 414f0f90-b449-4006-bb75-7367b91bb945 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Percentage of Posts by Core Tag
+    cellType: CHART
+    config:
+      height: null
+      vegaSpec:
+        $schema: https://vega.github.io/schema/vega-lite/v5.json
+        layer:
+          - data:
+              name: layer00
+            mark:
+              type: line
+              clip: true
+              tooltip: false
+            encoding:
+              x:
+                field: month
+                type: temporal
+                title: " "
+              color:
+                field: name
+                type: nominal
+              y:
+                field: percentage_total
+                type: quantitative
+                title: Percentage of Posts (monthly)
+                axis:
+                  format:
+                    columnType: NUMBER
+                    format: PERCENT
+                    numDecimalDigits: 0
+                    currency: USD
+                  formatType: NUMBER_FORMATTER
+        resolve:
+          scale: {}
+        datasets:
+          layer00:
+            - name: dummy
+              value: 0
+      selectedLayerIndex: 0
+      metadata:
+        byLayer:
+          - selectedDataFrameVariableName: dataframe
+      defaultInputTimezone: UTC
+  - cellId: 743c1e05-47c9-4e57-8899-a9c699825826 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: 100% Area Plot of Posts by Core Tag
+    cellType: CHART
+    config:
+      height: null
+      vegaSpec:
+        $schema: https://vega.github.io/schema/vega-lite/v5.json
+        layer:
+          - data:
+              name: layer00
+            mark:
+              type: area
+              clip: true
+              tooltip: false
+            encoding:
+              x:
+                field: month
+                type: temporal
+                title: " "
+              y:
+                field: percentage_total
+                type: quantitative
+                title: Percentage of Posts (monthly)
+              color:
+                field: name
+                type: nominal
+        resolve:
+          scale: {}
+        datasets:
+          layer00:
+            - name: dummy
+              value: 0
+      selectedLayerIndex: 0
+      metadata:
+        byLayer:
+          - selectedDataFrameVariableName: dataframe
+      defaultInputTimezone: UTC
+appLayout:
+  fullWidth: false
+  visibleMetadataFields:
+    - NAME
+    - DESCRIPTION
+    - AUTHOR
+    - LAST_EDITED
+    - CATEGORIES
+    - STATUS
+    - TABLE_OF_CONTENTS
+  rows:
+    - columns:
+        - start: 0
+          end: 30
+          elements:
+            - type: CELL
+              cellId: 0e366df5-02a3-45b3-9fd4-73fea8cfbd82
+              height: null
+              showLabel: true
+        - start: 30
+          end: 60
+          elements:
+            - type: CELL
+              cellId: a10d7fa2-2b70-4549-867b-18d3e4708088
+              height: null
+              showLabel: true
+    - columns:
+        - start: 0
+          end: 120
+          elements:
+            - type: CELL
+              cellId: 44ab94cc-439c-4e01-a0a0-fc676e0002d3
+              height: null
+              showLabel: true
+    - columns:
+        - start: 0
+          end: 120
+          elements:
+            - type: CELL
+              cellId: 414f0f90-b449-4006-bb75-7367b91bb945
+              height: null
+              showLabel: true
+    - columns:
+        - start: 0
+          end: 120
+          elements:
+            - type: CELL
+              cellId: 743c1e05-47c9-4e57-8899-a9c699825826
+              height: null
+              showLabel: true
