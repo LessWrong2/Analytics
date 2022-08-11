@@ -1,13 +1,13 @@
 schemaVersion: 1
 meta:
-  sourceVersionId: d8c3bfe8-f1a1-4c1b-9064-1a6621bb5a5a # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  sourceVersionId: 1805c248-f541-4d41-9bdc-f328767eced4 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
   description: ""
   projectId: a092be86-c4c9-47a4-b7c5-f192f84802a9 # DO NOT CHANGE - Unique ID of the project from which this file was generated
   title: Core Content Metrics
   timezone: null
   codeLanguage: PYTHON
   status:
-    name: In Progress
+    name: Production
 projectAssets: {}
 sharedAssets:
   dataConnections:
@@ -191,4 +191,28 @@ appLayout:
     - CATEGORIES
     - STATUS
     - TABLE_OF_CONTENTS
-  rows: []
+  rows:
+    - columns:
+        - start: 0
+          end: 120
+          elements:
+            - type: CELL
+              cellId: 547427b3-7e80-4060-bac7-537abb796e21
+              height: null
+              showLabel: true
+    - columns:
+        - start: 0
+          end: 120
+          elements:
+            - type: CELL
+              cellId: e73ba7dc-8479-4742-91d7-7dfbfa744de8
+              height: null
+              showLabel: true
+    - columns:
+        - start: 0
+          end: 120
+          elements:
+            - type: CELL
+              cellId: 602aae94-3e41-43de-a21e-a8404ce0cfff
+              height: null
+              showLabel: true
