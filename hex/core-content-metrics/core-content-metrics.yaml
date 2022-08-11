@@ -1,6 +1,6 @@
 schemaVersion: 1
 meta:
-  sourceVersionId: be4c7768-9bf3-42c8-bc87-953c42a740fc # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  sourceVersionId: e35971dd-3496-4af5-b538-8ba63eb290a4 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
   description: ""
   projectId: a092be86-c4c9-47a4-b7c5-f192f84802a9 # DO NOT CHANGE - Unique ID of the project from which this file was generated
   title: Core Content Metrics
@@ -8,6 +8,8 @@ meta:
   codeLanguage: PYTHON
   status:
     name: Production
+  categories:
+    - name: Core Content
 projectAssets: {}
 sharedAssets:
   dataConnections:
