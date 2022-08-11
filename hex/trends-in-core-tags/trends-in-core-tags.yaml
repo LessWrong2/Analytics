@@ -1,6 +1,6 @@
 schemaVersion: 1
 meta:
-  sourceVersionId: 70a31a98-91a8-4f44-a05c-fec05c10cbff # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  sourceVersionId: a3b76833-a674-4469-9a24-7579e12674dc # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
   description: null
   projectId: 1a57c85c-95ba-4562-83cf-0652c13b738e # DO NOT CHANGE - Unique ID of the project from which this file was generated
   title: Trends in Core Tags
@@ -36,7 +36,7 @@ cells:
       outputType: NUMBER
       options:
         increment: 1
-      defaultValue: 75
+      defaultValue: 25
   - cellId: 7c7ce142-fd80-4e30-bcf1-54658c1bc8eb # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
     cellLabel: null
     cellType: SQL
