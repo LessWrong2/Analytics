@@ -1,0 +1,128 @@
+schemaVersion: 1
+meta:
+  sourceVersionId: 42bd856c-5937-40f0-8cfa-8fe628d53cb3 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  description: ""
+  projectId: 94c17614-3f86-444a-9c0f-a5aa76158350 # DO NOT CHANGE - Unique ID of the project from which this file was generated
+  title: Weekly View Stats
+  timezone: null
+  codeLanguage: PYTHON
+projectAssets: {}
+sharedAssets:
+  dataConnections:
+    - dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e # LessWrong Analytics DB (postgres)
+cells:
+  - cellId: be0e243c-60c9-4ba1-8d09-433f132f6ac3 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: SQL
+    config:
+      source: |-
+        WITH weekly_view_stats AS (
+        SELECT
+            date_trunc('week', date) AS week,
+        --    document_id,
+            udpv.title AS title,
+            weighting IS NOT NULL AS core_reading,
+        --    logged_in,
+            SUM(num_views) AS num_views,
+            SUM(num_views) FILTER ( WHERE logged_in ) AS num_logged_in_views,
+            SUM(num_views) FILTER ( WHERE NOT logged_in ) AS num_logged_out_views,
+            COUNT(DISTINCT user_client_id) AS num_distinct_viewers
+            FROM user_day_post_views udpv
+                LEFT JOIN core_readings cr
+                ON cr._id = udpv.document_id
+            WHERE weighting IS NOT NULL
+            GROUP BY week, document_id, udpv.title, core_reading
+            ORDER BY week, num_views DESC
+        ),
+        weekly_totals AS (
+            SELECT
+                week,
+                core_reading,
+                SUM(num_views) AS total_num_views
+            FROM weekly_view_stats
+            GROUP BY week, core_reading
+        )
+        SELECT
+            wvs.*,
+            ROUND(wvs.num_views*1.0/wt.total_num_views, 3) AS percent_total,
+            wt.total_num_views
+        FROM weekly_view_stats wvs
+            JOIN weekly_totals wt
+            USING (week, core_reading)
+        WHERE num_views > 100
+        ORDER BY wvs.title, wvs.week DESC
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig:
+        pageSize: 12
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties: []
+  - cellId: f88984c7-5a97-41fd-9d9c-b4827b33350b # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: CHART
+    config:
+      height: null
+      vegaSpec:
+        $schema: https://vega.github.io/schema/vega-lite/v5.json
+        layer:
+          - data:
+              name: layer00
+            mark:
+              type: line
+              clip: true
+              tooltip: true
+            encoding:
+              x:
+                field: week
+                type: temporal
+              y:
+                field: num_views
+                type: quantitative
+        resolve:
+          scale: {}
+        datasets:
+          layer00:
+            - name: dummy
+              value: 0
+      selectedLayerIndex: 0
+      metadata:
+        byLayer:
+          - selectedDataFrameVariableName: dataframe
+      defaultInputTimezone: UTC
+  - cellId: 2e705913-d187-4010-a08a-37d3b779135b # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: SQL
+    config:
+      source: SELECT * FROM posts LIMIT 50
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe_2
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig: null
+appLayout:
+  fullWidth: false
+  visibleMetadataFields:
+    - NAME
+    - DESCRIPTION
+    - AUTHOR
+    - LAST_EDITED
+    - CATEGORIES
+    - STATUS
+    - TABLE_OF_CONTENTS
+  rows: []
