@@ -1,6 +1,6 @@
 schemaVersion: 1
 meta:
-  sourceVersionId: 615a200c-26ca-43e7-a2f3-24069f67cc13 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  sourceVersionId: ddb78cf4-7c8e-445d-8548-20f7bbc248db # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
   description: ""
   projectId: a092be86-c4c9-47a4-b7c5-f192f84802a9 # DO NOT CHANGE - Unique ID of the project from which this file was generated
   title: Core Content Metrics
@@ -68,16 +68,6 @@ cells:
         conditionalFormatting: null
         filters: null
         columnProperties:
-          - originalName: num_distinct_posts
-            renameTo: null
-            size: 120
-            wrapText: null
-            displayFormat: null
-          - originalName: num_views_diff
-            renameTo: null
-            size: 120
-            wrapText: null
-            displayFormat: null
           - originalName: date
             renameTo: null
             size: 120
@@ -104,6 +94,16 @@ cells:
             wrapText: null
             displayFormat: null
           - originalName: num_users
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_distinct_posts
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_views_diff
             renameTo: null
             size: 120
             wrapText: null
