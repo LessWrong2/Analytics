@@ -1,6 +1,6 @@
 schemaVersion: 1
 meta:
-  sourceVersionId: e35971dd-3496-4af5-b538-8ba63eb290a4 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  sourceVersionId: 615a200c-26ca-43e7-a2f3-24069f67cc13 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
   description: ""
   projectId: a092be86-c4c9-47a4-b7c5-f192f84802a9 # DO NOT CHANGE - Unique ID of the project from which this file was generated
   title: Core Content Metrics
@@ -68,6 +68,16 @@ cells:
         conditionalFormatting: null
         filters: null
         columnProperties:
+          - originalName: num_distinct_posts
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_views_diff
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
           - originalName: date
             renameTo: null
             size: 120
@@ -98,16 +108,6 @@ cells:
             size: 120
             wrapText: null
             displayFormat: null
-          - originalName: num_distinct_posts
-            renameTo: null
-            size: 120
-            wrapText: null
-            displayFormat: null
-          - originalName: num_views_diff
-            renameTo: null
-            size: 120
-            wrapText: null
-            displayFormat: null
           - originalName: num_users_diff
             renameTo: null
             size: 120
@@ -118,6 +118,49 @@ cells:
             size: 120
             wrapText: null
             displayFormat: null
+  - cellId: e2c89a31-d19d-435e-9af4-79120f995384 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: CODE
+    config:
+      source: |-
+        import hextoolkit
+        hex_data_connection = hextoolkit.get_data_connection("LessWrong Analytics DB")
+        dataframe_2  = hex_data_connection.query("""SELECT 
+        *,
+        num_views - LAG(num_views, 1) OVER (PARTITION BY logged_in, core_reading, lw_team_member_actual ORDER BY date) AS num_views_diff,
+        num_users - LAG(num_users, 1) OVER (PARTITION BY logged_in, core_reading, lw_team_member_actual ORDER BY date) AS num_users_diff,
+        num_distinct_posts - LAG(num_distinct_posts, 1) OVER (PARTITION BY logged_in, core_reading, lw_team_member_actual ORDER BY date) AS num_distinct_posts_diff
+        FROM
+        (
+        SELECT
+          date,
+          logged_in,
+          lw_team_member_actual,
+          weighting IS NOT NULL AS core_reading,
+          SUM(num_views) AS num_views,
+          COUNT(DISTINCT user_client_id) AS num_users,
+          COUNT(DISTINCT document_id) AS num_distinct_posts
+        FROM
+          user_day_post_views udpv
+          LEFT JOIN core_readings cr ON cr._id = udpv.document_id
+          WHERE date < current_date
+        GROUP BY
+          1,
+          2,
+          3,
+          4
+          
+        ORDER BY
+          lw_team_member_actual DESC,
+          logged_in,
+          date,
+          weighting IS NOT NULL
+          ) sub""")
+  - cellId: 1c242e42-9606-4ab3-b3f9-b3217fff5713 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: CODE
+    config:
+      source: dataframe.head()
   - cellId: 133594aa-c074-4d09-9f7b-0643ad4fb311 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
     cellLabel: null
     cellType: CODE
@@ -164,6 +207,45 @@ cells:
       defaultInputTimezone: America/Los_Angeles
   - cellId: e73ba7dc-8479-4742-91d7-7dfbfa744de8 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
     cellLabel: Views of ALL posts (logged-in vs logged-out)
+    cellType: CHART
+    config:
+      height: null
+      vegaSpec:
+        $schema: https://vega.github.io/schema/vega-lite/v5.json
+        layer:
+          - data:
+              name: layer00
+            mark:
+              type: area
+              clip: true
+              tooltip: true
+              point: false
+            encoding:
+              x:
+                field: date
+                type: temporal
+                timeUnit: yearmonthdate
+                title: " "
+              y:
+                field: num_views
+                type: quantitative
+                aggregate: sum
+              color:
+                field: logged_in
+                type: nominal
+        resolve:
+          scale: {}
+        datasets:
+          layer00:
+            - name: dummy
+              value: 0
+      selectedLayerIndex: 0
+      metadata:
+        byLayer:
+          - selectedDataFrameVariableName: dataframe
+      defaultInputTimezone: America/Los_Angeles
+  - cellId: ddc4aeba-10ab-4f32-98a6-f4de89144191 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
     cellType: CHART
     config:
       height: null
