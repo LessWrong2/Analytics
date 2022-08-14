@@ -1,0 +1,515 @@
+schemaVersion: 1
+meta:
+  sourceVersionId: 582513ad-9dc7-461e-860d-ebb642e4dbe4 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  description: ""
+  projectId: aa948eff-2d60-47ab-907d-119c4c31ed08 # DO NOT CHANGE - Unique ID of the project from which this file was generated
+  title: Core Content Metrics Deep Dive
+  timezone: null
+  codeLanguage: PYTHON
+  status:
+    name: Exploratory
+  categories:
+    - name: Core Content
+projectAssets: {}
+sharedAssets:
+  dataConnections:
+    - dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e # LessWrong Analytics DB (postgres)
+cells:
+  - cellId: d137a8ff-72a2-432e-8344-ce8e6017cef0 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Start Date
+    cellType: INPUT
+    config:
+      inputType: DATE
+      name: start_date
+      outputType: DATETIME
+      options:
+        enableTime: true
+        showRelativeDates: true
+      defaultValue:
+        unit: DAY
+        amount: 1
+        timezone: America/Los_Angeles
+        operation: AGO
+  - cellId: 76966d16-ce6c-419d-88f8-c5b65802da8f # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: WHICH SEQUENCES POSTS ARE GETTING READ
+    cellType: SQL
+    config:
+      source: |
+        ---WHICH POSTS
+
+        WITH weekly_view_stats AS (
+        SELECT
+               date_trunc('week', date) AS week,
+               document_id,
+               udpv.title AS title,
+               weighting IS NOT NULL AS core_reading,
+        --        logged_in,
+               SUM(num_views)              AS num_views,
+               SUM(num_views) FILTER ( WHERE logged_in ) AS num_logged_in_views,
+               SUM(num_views) FILTER ( WHERE NOT logged_in ) AS num_logged_out_views,
+               COUNT(DISTINCT user_client_id) AS num_distinct_viewers
+        FROM user_day_post_views udpv
+                 LEFT JOIN core_readings cr ON cr._id = udpv.document_id
+        WHERE weighting IS NOT NULL
+        GROUP BY 1, 2, 3, 4 --, 4, 5
+        ORDER BY 1, 5 DESC
+        ),
+        weekly_totals AS (
+        SELECT
+            week,
+            core_reading,
+            SUM(num_views) AS total_num_views
+        FROM weekly_view_stats
+        GROUP BY 1, 2
+            )
+        SELECT wvs.*, ROUND(wvs.num_views*1.0/wt.total_num_views, 3) AS percent_total, wt.total_num_views FROM
+        weekly_view_stats wvs
+        JOIN weekly_totals wt USING (week, core_reading)
+        WHERE num_views > 100
+        ORDER BY wvs.week DESC, num_views DESC
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: true
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig:
+        pageSize: 12
+        hideIndex: false
+        defaultSortColumn: week
+        defaultSortDirection: DESC
+        conditionalFormatting: null
+        filters: null
+        columnProperties:
+          - originalName: week
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: document_id
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: title
+            renameTo: null
+            size: 266
+            wrapText: null
+            displayFormat: null
+          - originalName: core_reading
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_views
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_logged_in_views
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_logged_out_views
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: num_distinct_viewers
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: percent_total
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat:
+              format: PERCENT
+              currency: USD
+              columnType: NUMBER
+              numDecimalDigits: 2
+          - originalName: total_num_views
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat:
+              format: NUMBER
+              currency: USD
+              columnType: NUMBER
+              numDecimalDigits: 0
+  - cellId: ccfe468b-9044-4465-b776-41f770ecd07c # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: REFERRERS TO CORE CONTENT
+    cellType: SQL
+    config:
+      source: |
+        --REFERRERS
+        WITH table_ AS (
+            SELECT sub.*, urls_referrer.title AS referrer_title
+            FROM (SELECT event_type,
+                         referrer_from,
+                         COUNT(*) AS num_events
+                  FROM core_events_cleaned cec
+                           JOIN urls ON urls.url_hash = md5(cec.url_to)
+                           JOIN core_readings cr ON cr._id = urls.document_id
+                  WHERE event_type IN ('pageLoadFinished', 'navigate')
+                    AND timestamp > {{start_date}}
+                  GROUP BY 1, 2 --, 3
+        -- ORDER BY 4 DESC
+                 ) sub
+                     LEFT JOIN urls urls_referrer ON md5(sub.referrer_from) = urls_referrer.url_hash
+            ORDER BY num_events DESC
+        ),
+        totals AS (
+            SELECT SUM(num_events) AS total_num_events
+            FROM table_
+        )
+        SELECT event_type, referrer_from, referrer_title, num_events, ROUND(num_events*1.0/total_num_events, 3) AS percent_total, total_num_events
+        FROM table_ tb
+        JOIN totals ttl ON 1 = 1
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe_2
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig: null
+  - cellId: 413b9937-7cf6-4840-bbaa-91da5f07df69 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: PAGELOAD VS NAVIGATE
+    cellType: SQL
+    config:
+      source: |-
+        --PAGELOAD VS NAVIGATE
+        SELECT event_type, COUNT(*)
+        FROM core_events_cleaned cec
+        JOIN urls ON urls.url_hash = md5(cec.url_to)
+        JOIN core_readings cr ON cr._id = urls.document_id
+        WHERE event_type IN ('pageLoadFinished', 'navigate')
+          AND timestamp > {{start_date}}
+        GROUP BY 1
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe_3
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig: null
+  - cellId: 5de1a9de-0d81-4b01-b771-6e68a7b4ccd0 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: CLICK ORIGIN TO CORE CONTENT
+    cellType: SQL
+    config:
+      source: |-
+        -----CLICK ORIGIN
+        SELECT page_context, COUNT(*) AS num_clicks, COUNT(DISTINCT COALESCE(user_id, client_id)) AS num_users
+        FROM core_events_cleaned cec
+                 JOIN urls urls_to ON urls_to.url_hash = md5(cec.url_to)
+                 JOIN core_readings cr ON cr._id = urls_to.document_id
+        WHERE event_type = 'linkClicked'
+          AND timestamp > {{start_date}}
+        GROUP BY 1
+        ORDER BY 2 DESC
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe_4
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig: null
+  - cellId: de3b0c93-b1a4-4ded-bc93-b4e2d0d5ce4a # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: CLICK ORIGIN TO CORE CONTENT 2
+    cellType: SQL
+    config:
+      source: |-
+        SELECT COALESCE(page_context, path), page_section_context, COUNT(*) AS num_clicks, COUNT(DISTINCT COALESCE(user_id, client_id)) AS num_user_clients
+        FROM core_events_cleaned cec
+        JOIN urls urls_to ON urls_to.url_hash = md5(cec.url_to)
+        JOIN core_readings cr ON cr._id = urls_to.document_id
+        WHERE event_type = 'linkClicked'
+        AND timestamp > {{start_date}}
+        GROUP BY 1, 2
+        ORDER BY 3 DESC
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe_6
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig:
+        pageSize: 12
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties: []
+  - cellId: 516cdff0-568f-47f7-8fed-cc975ae2e88b # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: CORE EVENTS WITH URL TARGET
+    cellType: SQL
+    config:
+      source: |-
+        SELECT *
+        FROM
+          (SELECT path,
+                  COUNT(*)
+           FROM core_events_cleaned cec
+           JOIN urls urls_to ON urls_to.url_hash = md5(cec.url_to)
+           JOIN core_readings cr ON cr._id = urls_to.document_id
+           WHERE event_type = 'linkClicked'
+             AND timestamp > {{start_date}}
+             AND page_context IS NULL
+           GROUP BY 1
+           ORDER BY 2 DESC) sub
+        LEFT JOIN urls ON urls.url_hash = md5(sub.path)
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe_7
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig: null
+  - cellId: bb2429ed-73c0-4077-a56e-65018899589b # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: TEXT
+    config:
+      richText:
+        - type: paragraph
+          children:
+            - text: |-
+                Previous Findings:
+
+                --Logged-in views of core content is ~10% of the metric
+                --Top post not contributing more than 5% of views...
+                -- 60% of view events coming from pageLoads, 40% from navigate events, need to investigate clicking behavior, mouse 1 vs 2
+                -- posts page is biggest source
+                -- most clicks come from the post body tied with bottom sequence navigation,
+                -- sequence navigation is big
+  - cellId: 52711fc5-4086-47da-911f-40a4387c866f # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: MARKDOWN
+    config:
+      source: "#INVESTIGATING THE HIGLIGHTS PAGE"
+  - cellId: 527d88e4-c323-477b-8e3d-754cb938b657 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: SQL
+    config:
+      source: |-
+        SELECT COALESCE(page_section_context, event->>'listContext') AS page_section_context, COUNT(*) AS num_clicks
+        FROM public.core_events_cleaned
+        WHERE timestamp > {{start_date}}
+        AND event_type = 'linkClicked'
+        AND page_context = 'homePage'
+        GROUP BY 1
+        ORDER BY num_clicks DESC
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: frontpage_clicks_by_pagesection
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig: null
+  - cellId: f3f9adca-ebbc-42f0-a551-2c3d0b129f85 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Clicks from the Frontpage by Section
+    cellType: CHART
+    config:
+      height: null
+      vegaSpec:
+        $schema: https://vega.github.io/schema/vega-lite/v5.json
+        layer:
+          - data:
+              name: layer00
+            mark:
+              tooltip: true
+              type: bar
+              clip: true
+            encoding:
+              x:
+                field: num_clicks
+                type: quantitative
+              y:
+                field: page_section_context
+                type: nominal
+                sort: -x
+        resolve:
+          scale: {}
+        datasets:
+          layer00:
+            - name: dummy
+              value: 0
+      selectedLayerIndex: 0
+      metadata:
+        byLayer:
+          - selectedDataFrameVariableName: frontpage_clicks_by_pagesection
+      defaultInputTimezone: UTC
+  - cellId: d4d77550-0664-4887-869e-e0cbeaf05438 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: SQL
+    config:
+      source: ""
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe_11
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig: null
+  - cellId: 690620da-084e-420c-a849-a45039babeb0 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: CHART
+    config:
+      height: null
+      vegaSpec: null
+      selectedLayerIndex: 0
+      metadata: null
+      defaultInputTimezone: UTC
+  - cellId: 4e146625-4f6b-49f3-8642-f64767fb0506 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: SQL
+    config:
+      source: |-
+        SELECT *
+        -- page_section_context, COUNT(*) AS num_clicks
+        FROM public.core_events_cleaned
+        WHERE timestamp > {{start_date}}
+        AND event_type = 'linkClicked'
+        AND page_context = 'homePage'
+        AND page_section_context IS NULL
+        -- GROUP BY page_section_context
+        -- ORDER BY num_clicks DESC
+      dataFrameCell: false
+      dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
+      resultVariableName: dataframe_10
+      enableCache: false
+      runOnLoad: false
+      runOnSchedule: false
+      useRichDisplay: true
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      tableDisplayConfig:
+        pageSize: 12
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties:
+          - originalName: environment
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: timestamp
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: event_type
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: tab_id
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: client_id
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: user_id
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: path
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: page_context
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: page_section_context
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: url_to
+            renameTo: null
+            size: 318
+            wrapText: true
+            displayFormat: null
+          - originalName: referrer_from
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: lw_team_member
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: event
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: uuid
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: lw_team_member_actual
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: ab_test_group
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: birth
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+appLayout:
+  fullWidth: false
+  visibleMetadataFields:
+    - NAME
+    - DESCRIPTION
+    - AUTHOR
+    - LAST_EDITED
+    - CATEGORIES
+    - STATUS
+    - TABLE_OF_CONTENTS
+  rows: []
