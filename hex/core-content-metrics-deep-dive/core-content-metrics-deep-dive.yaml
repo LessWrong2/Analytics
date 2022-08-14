@@ -1,6 +1,6 @@
 schemaVersion: 1
 meta:
-  sourceVersionId: 582513ad-9dc7-461e-860d-ebb642e4dbe4 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  sourceVersionId: 55f2d7a6-daad-415b-816c-33c01d26220c # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
   description: ""
   projectId: aa948eff-2d60-47ab-907d-119c4c31ed08 # DO NOT CHANGE - Unique ID of the project from which this file was generated
   title: Core Content Metrics Deep Dive
@@ -366,17 +366,148 @@ cells:
     cellLabel: null
     cellType: SQL
     config:
-      source: ""
+      source: |-
+        SELECT cec.*, urls.title FROM
+        public.core_events_cleaned cec
+        LEFT JOIN public.urls ON md5(cec.url_to) = urls.url_hash
+        WHERE path = '/highlights'
+        AND event_type = 'linkClicked'
+        AND timestamp > {{start_date}}
       dataFrameCell: false
       dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
       resultVariableName: dataframe_11
       enableCache: false
       runOnLoad: false
       runOnSchedule: false
-      useRichDisplay: false
+      useRichDisplay: true
       sqlCellOutputType: PANDAS
       useQueryMode: false
-      tableDisplayConfig: null
+      tableDisplayConfig:
+        pageSize: 12
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters:
+          - column: title
+            predicate:
+              op: IS_NULL
+        columnProperties:
+          - originalName: environment
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: timestamp
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: event_type
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: tab_id
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: client_id
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: user_id
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: path
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: page_context
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: page_section_context
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: url_to
+            renameTo: null
+            size: 397
+            wrapText: null
+            displayFormat: null
+          - originalName: referrer_from
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: lw_team_member
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: event
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: uuid
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: lw_team_member_actual
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+          - originalName: ab_test_group
+            renameTo: null
+            size: 120
+            wrapText: null
+            displayFormat: null
+  - cellId: 81e17a34-f2ea-4920-95ef-6ada9a7ff1d3 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: CHART
+    config:
+      height: null
+      vegaSpec:
+        $schema: https://vega.github.io/schema/vega-lite/v5.json
+        layer:
+          - data:
+              name: layer00
+            mark:
+              tooltip: true
+              type: bar
+              clip: true
+              orient: horizontal
+            encoding:
+              y:
+                field: title
+                type: nominal
+                sort: -x
+              x:
+                field: environment
+                type: nominal
+                aggregate: count
+        resolve:
+          scale: {}
+        datasets:
+          layer00:
+            - name: dummy
+              value: 0
+      selectedLayerIndex: 0
+      metadata:
+        byLayer:
+          - selectedDataFrameVariableName: dataframe_11
+      defaultInputTimezone: UTC
   - cellId: 690620da-084e-420c-a849-a45039babeb0 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
     cellLabel: null
     cellType: CHART
