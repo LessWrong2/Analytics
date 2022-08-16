@@ -1,6 +1,6 @@
 schemaVersion: 1
 meta:
-  sourceVersionId: a3b76833-a674-4469-9a24-7579e12674dc # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  sourceVersionId: 22db3f98-ed9c-4d92-8ec1-b73fe58efc35 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
   description: null
   projectId: 1a57c85c-95ba-4562-83cf-0652c13b738e # DO NOT CHANGE - Unique ID of the project from which this file was generated
   title: Trends in Core Tags
@@ -66,6 +66,7 @@ cells:
         posts_aggregated_period pap
         JOIN total_posts_per_period tp USING (month)
         WHERE month >= {{start_date}} AND month < DATE_TRUNC('month', current_date)
+        --commment
       dataFrameCell: false
       dataConnectionId: 34162326-33d3-4891-82fc-534747779f8e
       resultVariableName: dataframe
@@ -232,6 +233,11 @@ cells:
         byLayer:
           - selectedDataFrameVariableName: dataframe
       defaultInputTimezone: UTC
+  - cellId: 882119d6-28fa-40d6-b756-bf1bbaebe7c9 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    cellType: CODE
+    config:
+      source: dataframe.head()
 appLayout:
   fullWidth: false
   visibleMetadataFields:
