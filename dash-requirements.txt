@@ -83,7 +83,7 @@ plotly @ file:///home/conda/feedstock_root/build_artifacts/plotly_1626369292129/
 plotly-express==0.4.1
 prometheus-client==0.11.0
 prompt-toolkit @ file:///home/conda/feedstock_root/build_artifacts/prompt-toolkit_1623977816122/work
-protobuf==3.17.3
+protobuf==3.18.3
 ptyprocess @ file:///home/conda/feedstock_root/build_artifacts/ptyprocess_1609419310487/work/dist/ptyprocess-0.7.0-py2.py3-none-any.whl
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
