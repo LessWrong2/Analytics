@@ -34,7 +34,12 @@ def format_title(title):
 def load_timeseries_dict():
     date_str = cp.get_list_of_dates()[0][-8:]
     directory = da.BASE_PATH + '{folder}/{date}'.format(folder='processed', date=date_str)
-    timeseries_dict_file = open(directory + '/timeseries_dict.p', 'rb')
+    try:
+        timeseries_dict_file = open(directory + '/timeseries_dict.p', 'rb')
+    except BaseException:
+        date_str = cp.get_list_of_dates()[1][-8:]
+        directory = da.BASE_PATH + '{folder}/{date}'.format(folder='processed', date=date_str)
+        timeseries_dict_file = open(directory + '/timeseries_dict.p', 'rb')
     timeseries_dict = pickle.load(timeseries_dict_file)
     timeseries_dict_file.close()
 
@@ -44,7 +49,12 @@ def load_timeseries_dict():
 def generate_specs():
     date_str = cp.get_list_of_dates()[0][-8:]
     directory = da.BASE_PATH + '{folder}/{date}'.format(folder='processed', date=date_str)
-    plot_specs_file = open(directory + '/plot_specs.p', 'rb')
+    try:
+        plot_specs_file = open(directory + '/plot_specs.p', 'rb')
+    except BaseException:
+        date_str = cp.get_list_of_dates()[1][-8:]
+        directory = da.BASE_PATH + '{folder}/{date}'.format(folder='processed', date=date_str)
+        plot_specs_file = open(directory + '/plot_specs.p', 'rb')
     plot_specs = pickle.load(plot_specs_file)
     plot_specs_file.close()
 
