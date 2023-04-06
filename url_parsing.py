@@ -11,7 +11,7 @@ urlRecord.__new__.__defaults__ = (None,) * 5
 urlRecord()
 
 
-def get_urls(start_date='2020-01-01'):
+def get_urls(start_date='2020-01-01'): #modularity
     query = """SELECT DISTINCT url FROM
                 (SELECT DISTINCT path AS url FROM lessraw_small WHERE timestamp >= '{0}'
                 UNION
@@ -22,11 +22,17 @@ def get_urls(start_date='2020-01-01'):
     engine = get_pg_engine()
     with engine.begin() as conn:
         urls = pd.read_sql(query, conn)
-    engine.dispose()
+    engine.dispose() #nice clean up of SQL connection
 
     return urls
 
-
+## BUGS
+# regexes have bugs, silently fail, not detected
+# collections dict of dataframes has outdated data that isn't as fresh as urls coming in, how to avoid creating records when there's out of date data
+# once created, a record doesn't get updated, so, e.g. name changes won't be reflected in url records (not the worst)
+# sluggify function here could end up different than sluggify in React codebase and then will stop matching
+# any protection on size or out of memory issues?
+# the whole thing is fragile to changes in url schema in the React codebase, i.e., how does it get kept up to date? Urls that don't match anything? Not currently being flagged in any way
 
 
 
@@ -38,27 +44,27 @@ old_wiki_patterns = re.compile(r'wiki\.lesswrong', re.IGNORECASE)
 user_pattern = re.compile(r'((?<=\/user/)|(?<=\/users/))(\w+)', re.IGNORECASE)
 tags_pattern = re.compile(r'(?<=\/tag\/)([\w-]+)', re.IGNORECASE)
 
-def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse external urls
+def resolve_url_uncurried(url, collections): #TO-DO Parse /users/ patterns, #TO-DO parse external urls #"collections" is an opaque unclear variable name, also would be nice if this had types with mypy or coconut or something
 
     def pattern_search(pattern):
-        return re.search(pattern, url) #, re.IGNORECASE)
+        return re.search(pattern, url) #, re.IGNORECASE) #clean up this comment
 
-    def simple_record_pattern(pattern, document_type=None):
+    def simple_record_pattern(pattern, document_type=None): #what makes this a simple record pattern?
         if not document_type:
-            document_type =pattern
+            document_type =pattern #I am confused by this line
         if pattern_search(pattern):
             return urlRecord(url=url, documentType=document_type)
         else:
             return False
 
 
-    posts = dfs['posts']
-    sequences = dfs['sequences']
-    users = dfs['users']
-    tags = dfs['tags']
+    posts = collections['posts']
+    sequences = collections['sequences']
+    users = collections['users']
+    tags = collections['tags']
 
     ## Frontpage
-    # homepage_pattern = r'(^/$)|(^/\?)'
+    # homepage_pattern = r'(^/$)|(^/\?)'  ## kind of risky to do this since if you change the actual used regex above, you might forget to change the one here
     if pattern_search(homepage_pattern): #pattern_search(homepage_pattern):
         return urlRecord(
             url=url,
@@ -68,7 +74,7 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
     ## POSTS
     # standard post url: "/posts/<id>" or "/s/<sequence_id>/p/<posts_id>"
     # post_patterns = r'(?<=/s/\w{17}/p/)(\w{17})|(?<=/posts/)\w{17}'
-    matches = pattern_search(post_patterns)
+    matches = pattern_search(post_patterns) #I'm not sure how, but I just feel like all of this could be tidier
     if matches:
         postId = matches.group(0)
         matching_posts = posts[posts['_id'] == postId]
@@ -179,7 +185,7 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
                 url = url,
                 title= tag['name'],
                 documentId = tag['_id'],
-                documentType='/tag/'
+                documentType='/tag/' #why is document type have these slashes??
             )
         else:
             return urlRecord(
@@ -200,32 +206,36 @@ def resolve_url_uncurried(url, dfs): #TO-DO Parse /users/ patterns, #TO-DO parse
     return urlRecord(url)
 
 
-def resolve_urls(df, dfs, url_col='url'):
+def resolve_urls(df, collections, url_col='url'): #input parameters are not well named
 
-    unique_urls = df.dropna().drop_duplicates(subset=url_col)
-    urls_resolved = unique_urls[url_col].astype(str).apply(lambda x: pd.Series(data=resolve_url_uncurried(x, dfs)))
-
-    urls_resolved.columns = ['url', 'type', 'title', 'documentId', 'author']
-    urls_resolved = urls_resolved.fillna(np.nan)
-    urls_resolved['onsite'] = urls_resolved['url'].str.match(r'(^\/)') & ~urls_resolved['url'].str.match('http')
+    urls_resolved = (df
+                     .dropna()
+                     .drop_duplicates(subset=url_col)
+                     [url_col]
+                     .astype(str)
+                     .apply(lambda x: pd.Series(data=resolve_url_uncurried(x, collections)))
+                     .fillna(np.nan)
+                     .assign(onsite= lambda x: x['url'].str.match(r'(^\/)') & ~urls_resolved['url'].str.match('http'))
+                     ['url', 'type', 'title', 'documentId', 'author']
+                     )
 
     return urls_resolved
 
 
 @timed
-def get_resolved_urls(dfs, sample=None, start_date=None, url_col='url'):
+def get_resolved_urls(collections, sample=None, start_date=None, url_col='url'): #this and previous function really could have docstrings – what's the difference between the two?
 
     urls = get_urls(start_date)
 
     if sample:
         urls = urls.sample(sample)
 
-    # def resolve_urls_curried(x):
-    #     return resolve_urls(x, dfs)
-    # resolve_urls_curried = lambda x: resolve_urls(x, dfs)
+    # def resolve_urls_curried(x): #ought to clean up this commented out code from actual committed code
+    #     return resolve_urls(x, collections)
+    # resolve_urls_curried = lambda x: resolve_urls(x, collections)
 
     # urls_resolved = parallelize_dataframe(urls, resolve_urls_curried, 2)
-    urls_resolved = resolve_urls(urls, dfs)
+    urls_resolved = resolve_urls(urls, collections)
     urls_resolved['url_hash'] = urls_resolved[url_col].apply(lambda x: md5(x.encode()).hexdigest())
 
     cols = ['url', 'type', 'title', 'author', 'document_id', 'url_hash']
@@ -234,7 +244,7 @@ def get_resolved_urls(dfs, sample=None, start_date=None, url_col='url'):
     return urls_resolved[cols]
 
 @timed
-def run_url_table_update(dfs, override_start=None):
+def run_url_table_update(collections, override_start=None):
 
     engine = get_pg_engine()
     with engine.begin() as conn:
@@ -249,7 +259,7 @@ def run_url_table_update(dfs, override_start=None):
             start_date = urls_existing['birth'].max()
 
         # Download & Resolve new URLs since ~birth
-        urls_resolved_new = get_resolved_urls(dfs, start_date=(pd.to_datetime(start_date) - pd.Timedelta('1 days')).strftime('%Y-%m-%d'))
+        urls_resolved_new = get_resolved_urls(collections, start_date=(pd.to_datetime(start_date) - pd.Timedelta('1 days')).strftime('%Y-%m-%d'))
         urls_resolved_new['birth'] = pd.datetime.now()
 
         # Append new urls to existing table, drop duplicates
@@ -266,7 +276,7 @@ def run_url_table_update(dfs, override_start=None):
 
 
 
-## tests
+## tests ## these aren't real tests! Sure, you can uncomment and run them, but what's the output supposed to be? Real tests are something you can run and check the output against what's supposed to be correct.
 
 # resolve_url('http://wiki.lesswrong.com/wiki/Mysterious_Answers_to_Mysterious_Questions')
 # resolve_url('/lw/y8/interlude_with_the_confessor_48/')
