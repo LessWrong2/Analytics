@@ -41,7 +41,6 @@ def prepare_users(dfu):
                       'commentCount',
                       'karma',
                       'afKarma',
-                      'legacyKarma',
                       'deleted',
                       'banned',
                       'legacy',
@@ -79,7 +78,6 @@ def prepare_users(dfu):
                       'num_distinct_posts_viewed_last_180_days',
                       'walledGardenInvite',
                       'hideWalledGardenUI',
-                      'bio',
                       'email']
 
     users = dfu.loc[:,users_sql_cols]
@@ -109,7 +107,6 @@ def prepare_posts(dfp):
         'num_comments_rederived',
         'num_distinct_viewers',
         'num_distinct_commenters',
-        'wordCount',
         'num_votes',
         'smallUpvote',
         'bigUpvote',
@@ -151,7 +148,6 @@ def prepare_comments(dfc):
         'answer',
         'parentAnswerId',
         'parentCommentId',
-        'wordCount',
         'top_level',
         'gw',
         'num_votes',

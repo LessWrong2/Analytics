@@ -15,7 +15,7 @@ from plotly_ops import run_plotline
 from google_sheet_ops import *
 from karmametric import run_metric_pipeline
 from dash_aggregations import run_dash_aggregations_pipeline
-from postgres_ops import run_pg_pandas_transfer
+from postgres_ops import run_pg_pandas_transfer, get_pg_engine
 from google_analytics_ops import run_ga_pipeline
 from url_parsing import run_url_table_update
 from sql_pipeline import run_postgres_pipeline
@@ -236,8 +236,11 @@ def get_collections_cleaned(coll_names=('comments', 'views', 'votes', 'posts', '
     For all collections in argument, downloads and cleans them.
     Returns a dict of dataframes.
     """
-    db = get_mongo_db_object()
-    colls_dict = {name: get_collection_cleaned(name, db, limit) for name in coll_names}
+    engine = get_pg_engine('dev_db')
+
+    with engine.begin() as conn:
+        colls_dict = {name: get_collection_cleaned(name, conn, limit) for name in coll_names}
+    engine.dispose()
 
     return colls_dict
 

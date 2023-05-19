@@ -11,7 +11,6 @@ table_creation_commands = {
         comment_count                           smallint,
         karma                                   integer,
         af_karma                                integer,
-        legacy_karma                            integer,
         deleted                                 boolean,
         banned                                  boolean,
         legacy                                  boolean,
@@ -49,7 +48,6 @@ table_creation_commands = {
         num_distinct_posts_viewed_last_180_days numeric,
         walled_garden_invite                    boolean,
         hide_walled_garden_ui                   boolean,
-        bio                                     text,
         email                                   text,
         birth                                   timestamp
     ); """,
@@ -75,7 +73,6 @@ table_creation_commands = {
         num_comments_rederived          numeric,
         num_distinct_viewers            numeric,
         num_distinct_commenters         numeric,
-        word_count                      numeric,
         num_votes                       numeric,
         small_upvote                    numeric,
         big_upvote                      numeric,
@@ -113,7 +110,6 @@ table_creation_commands = {
         answer            BOOLEAN,
         parent_answer_id  varchar(64),
         parent_comment_id varchar(64),
-        word_count        numeric,
         top_level         BOOLEAN,
         gw                BOOLEAN,
         num_votes         numeric,
@@ -140,7 +136,6 @@ table_creation_commands = {
         is_unvote       BOOLEAN     NOT NULL,
         af_power        smallint    NOT NULL,
         legacy          BOOLEAN     NOT NULL,
-        author_id       varchar(64) NOT NULL,
         birth           timestamp
     );""",
     'views': """CREATE TABLE views
