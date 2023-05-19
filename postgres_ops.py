@@ -126,7 +126,6 @@ def prepare_posts(dfp):
         'frontpageDate',
         'curatedDate',
         'status',
-        'legacySpam',
         'authorIsUnreviewed',
         'most_recent_comment',
         'userAgent',
@@ -215,14 +214,22 @@ def prepare_sequences(sequences):
     return sequences[sequences_sql_cols]
 
 
-def get_pg_engine():
+def get_pg_engine(db='analytics'):
+
     config = configparser.ConfigParser()
     config.read('config.ini')
 
-    PG_ACCOUNT = config['POSTGRESDB']['pg_account']
-    PG_PASSWORD = config['POSTGRESDB']['pg_password']
-    PG_HOST = config['POSTGRESDB']['pg_host']
-    PG_DB_NAME = config['POSTGRESDB']['pg_db_name']
+    if db == 'analytics':
+        db_config_name = "POSTGRESANALYTICSDB"
+    elif db == 'prod_db':
+        db_config_name = "POSTGRESPRODDB"
+    elif db == 'dev_db':
+        db_config_name = "POSTGRESDEVDB"
+
+    PG_ACCOUNT = config[db_config_name]['pg_account']
+    PG_PASSWORD = config[db_config_name]['pg_password']
+    PG_HOST = config[db_config_name]['pg_host']
+    PG_DB_NAME = config[db_config_name]['pg_db_name']
 
     return sqa.create_engine('postgresql+psycopg2://{}:{}@{}/{}'.format(PG_ACCOUNT, PG_PASSWORD, PG_HOST, PG_DB_NAME))
 

@@ -20,7 +20,7 @@ from google_analytics_ops import run_ga_pipeline
 from url_parsing import run_url_table_update
 from sql_pipeline import run_postgres_pipeline
 from utils import timed, print_and_log, get_config_field, get_valid_users, get_valid_posts, \
-    get_valid_comments, get_valid_votes, get_valid_views, get_collection, get_mongo_db_object
+    get_valid_comments, get_valid_votes, get_valid_views, get_collection
 
 
 MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
@@ -29,7 +29,7 @@ BASE_PATH = get_config_field('PATHS','base')
 ENV = get_config_field('ENV', 'env')
 
 
-def get_collection_cleaned(coll_name, db,
+def get_collection_cleaned(coll_name, conn,
                            limit=None, votes_views_start_date=None):  # (name of collection, MongoDB object, read/write arg bundle) -> dataframe
     """
     Downloads, *processes* and returns single collection from MongoDB.
@@ -52,7 +52,6 @@ def get_collection_cleaned(coll_name, db,
             'userId',
             'title',
             'postedAt',
-            'excerpt',
             # 'contents', #not using at present, is large.
             'baseScore',
             'afBaseScore',
@@ -60,8 +59,6 @@ def get_collection_cleaned(coll_name, db,
             'viewCount',
             'clickCount',
             'commentCount',
-            'wordCount',
-            'commenters',
             'createdAt',
             'frontpageDate',
             'curatedDate',
@@ -74,9 +71,7 @@ def get_collection_cleaned(coll_name, db,
             'canonicalCollectionSlug',
             # 'moderationGuidelinesHtmlBody',
             # 'deleted', #there's only a single post with this flag, remove so as make sampling posts not fail
-            'legacySpam',
             'isEvent',
-            'plaintextExcerpt',
             'website',
             'authorIsUnreviewed',
             'status'
@@ -94,11 +89,9 @@ def get_collection_cleaned(coll_name, db,
             'deleted',
             'parentCommentId',
             'legacy',
-            'draft',
             'answer',
             'parentAnswerId',
             'userAgent',
-            'wordCount',
             # 'contents'
         ],
         'users': [
@@ -110,15 +103,11 @@ def get_collection_cleaned(coll_name, db,
             'commentCount',
             'frontpagePostCount',
             'karma',
-            'legacyKarma',
-            'bio',
             'deleted',
             'banned',
             'email',
             'legacy',
             'afKarma',
-            'moderationGuidelinesHtmlBody',
-            'subscribers',
             'shortformFeedId',
             'signUpReCaptchaRating',
             'reviewedByUserId',
@@ -129,14 +118,13 @@ def get_collection_cleaned(coll_name, db,
             'afPower',
             'collectionName',
             'documentId',
-            'legacy',
             'power',
             'userId',
             'voteType',
             'votedAt',
             'cancelled',
             'isUnvote',
-            'authorId'
+            'authorIds'
         ],
         'views': [
             'userId',
@@ -166,7 +154,6 @@ def get_collection_cleaned(coll_name, db,
             'core',
             'suggestedAsFilter',
             'defaultOrder',
-            'promoted'
         ],
         'tagrels': [
             'createdAt',
@@ -190,9 +177,6 @@ def get_collection_cleaned(coll_name, db,
             'isDeleted',
             'hidden',
             'schemaVersion',
-            'description',
-            'htmlDescription',
-            'plaintextDescription',
             'contents'
         ]
     }
@@ -211,25 +195,27 @@ def get_collection_cleaned(coll_name, db,
 
     if not votes_views_start_date:
         votes_views_start_date = datetime.datetime.today() - datetime.timedelta(days=365 * 5)
-    if type(votes_views_start_date) == str:
-        votes_views_start_date = pd.datetime(votes_views_start_date)
+    if type(votes_views_start_date) != str:
+        votes_views_start_date = votes_views_start_date.strftime('%Y-%m-%d')
 
     query_filters = {
-        'logins': {'name': 'login'},
-        'votes': {'votedAt': {'$gte': votes_views_start_date}},
-        'views': {'name': 'post-view', 'createdAt': {'$gte': votes_views_start_date}},
+        'logins': " WHERE name = 'login'",
+        'votes': " WHERE \"votedAt\" >= '{}'".format(votes_views_start_date),
+        'views': " WHERE name = 'post-view' AND createdAt >= '{}'".format(votes_views_start_date)
     }
 
     def name_check(coll_name):
         # ugly, but how else to do it?
         if coll_name in ('views', 'logins'):
-            return 'lwevents'
+            return 'LWEvents'
+        elif coll_name == 'tagrels':
+            return 'TagRels'
         else:
-            return coll_name
+            return coll_name.capitalize()
 
     raw_collection_df = get_collection(
-        db=db,
-        coll_name=name_check(coll_name),
+        conn=conn,
+        table_name=name_check(coll_name),
         projection=selected_columns[coll_name],
         query_filter=query_filters.get(coll_name),
         limit=limit
@@ -385,7 +371,7 @@ def clean_raw_posts(posts):
     # fill in missing values and cast to appropriate types
     for col in ['viewCount', 'clickCount', 'commentCount']:
         posts.loc[:, col] = posts.loc[:, col].fillna(0).astype(int)
-    for col in ['draft', 'legacy', 'af', 'question', 'legacySpam', 'isEvent']:
+    for col in ['draft', 'legacy', 'af', 'question', 'isEvent']:
         posts.loc[:, col] = posts.loc[:, col].fillna(False).astype(bool)
 
     return posts
@@ -407,7 +393,7 @@ def clean_raw_users(users):
     """
     users.loc[:, 'createdAt'] = pd.to_datetime(users['createdAt'])
     users.loc[:, 'afKarma'] = users['afKarma'].fillna(0)
-    for col in ['postCount', 'commentCount', 'frontpagePostCount', 'karma', 'legacyKarma']:
+    for col in ['postCount', 'commentCount', 'frontpagePostCount', 'karma']:
         users.loc[:, col] = users.loc[:, col].fillna(0).astype(int)
     for col in ['deleted', 'legacy', 'banned', 'hideWalledGardenUI', 'walledGardenInvite']:
         users.loc[:, col] = users.loc[:, col].fillna(False).astype(bool)
@@ -425,12 +411,11 @@ def clean_raw_votes(votes):
     votes.loc[:, 'isUnvote'] = votes['isUnvote'].fillna(False).astype(bool)
     votes.loc[:, 'afPower'] = votes['afPower'].fillna(0).astype('int8')
     votes.loc[:, 'collectionName'] = votes['collectionName'].astype('category')
-    votes.loc[:, 'legacy'] = votes['legacy'].fillna(False).astype(bool)
     votes.loc[:, 'power'] = votes['power'].astype('int8')
     votes.loc[:, 'voteType'] = votes['voteType'].astype('category')
     votes.loc[:, 'votedAt'] = pd.to_datetime(votes['votedAt'])
     votes.loc[:, 'userId'] = votes['userId'].astype(str)
-    votes.loc[:, 'authorId'] = votes['authorId'].astype(str)
+    # votes.loc[:, 'authorIds'] = votes['authorId'].astype(str)
     votes = votes.drop(columns=['_id']) # unnecessary and takes up 200Mb
 
     return votes
@@ -462,7 +447,7 @@ def clean_raw_tags(tags_df):
     tags_parsed = tags_df
 
     tags_parsed.loc[:, 'defaultOrder'] = tags_parsed.loc[:,'defaultOrder'].fillna(0)
-    for col in ['deleted', 'adminOnly', 'core', 'suggestedAsFilter', 'promoted']:
+    for col in ['deleted', 'adminOnly', 'core', 'suggestedAsFilter']:
         tags_parsed.loc[:, col] = tags_parsed.loc[:, col].fillna(False).astype(bool)
 
     return tags_parsed
