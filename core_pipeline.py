@@ -201,7 +201,7 @@ def get_collection_cleaned(coll_name, conn,
     query_filters = {
         'logins': " WHERE name = 'login'",
         'votes': " WHERE \"votedAt\" >= '{}'".format(votes_views_start_date),
-        'views': " WHERE name = 'post-view' AND createdAt >= '{}'".format(votes_views_start_date)
+        'views': " WHERE name = 'post-view' AND \"createdAt\" >= '{}'".format(votes_views_start_date)
     }
 
     def name_check(coll_name):
