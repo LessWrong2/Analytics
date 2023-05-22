@@ -115,6 +115,7 @@ def get_collection_cleaned(coll_name, conn,
             'walledGardenInvite'
         ],
         'votes': [
+            '_id',
             'afPower',
             'collectionName',
             'documentId',
@@ -127,6 +128,7 @@ def get_collection_cleaned(coll_name, conn,
             'authorIds'
         ],
         'views': [
+            '_id',
             'userId',
             'documentId',
             'createdAt',

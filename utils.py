@@ -29,7 +29,7 @@ def get_collection(table_name, conn, projection=None, query_filter=None, limit=N
     print_and_log('{} download started at {}. . .'.format(table_name, datetime.datetime.today()))
 
     columns = ", ".join(['"' + col + '"' for col in projection])
-    select_query = 'SELECT _id, {columns} FROM "{table}"'.format(table=table_name, columns=columns)
+    select_query = 'SELECT {columns} FROM "{table}"'.format(table=table_name, columns=columns)
 
     if query_filter:
         query = select_query + query_filter
