@@ -174,6 +174,11 @@ def prepare_views(dpv):
     dpv.loc[:,'documentId'] = dpv.loc[:,'documentId'].str[0:25] #because of one stupid row
     dpv = dpv.sort_values('createdAt')
     return dpv
+  
+def prepare_votes(dpv):
+    dpv = dpv.sort_values('createdAt')
+    dpv.loc[:,'authorIds'] =  dpv.loc[:,'authorIds'].astype(str)
+    return dpv
 
 
 def prepare_tags(tags):

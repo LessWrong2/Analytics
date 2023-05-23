@@ -18,8 +18,6 @@ from utils import timed, print_and_log, get_config_field, get_valid_users, get_v
     get_valid_comments, get_valid_votes, get_valid_views, get_collection
 
 
-MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
-MONGO_DB_URL = get_config_field('MONGODB', 'prod_db_url')
 BASE_PATH = get_config_field('PATHS','base')
 ENV = get_config_field('ENV', 'env')
 
@@ -455,6 +453,8 @@ def clean_raw_tagrels(tagrels_df):
     tagrels_parsed = tagrels_df
     for col in ['deleted', 'inactive']:
         tagrels_parsed.loc[:, col] = tagrels_parsed.loc[:, col].fillna(False).astype(bool)
+    for col in ['score', 'baseScore']:
+      tagrels_parsed[col] = tagrels_parsed[col].astype(int)
 
     return tagrels_parsed
 

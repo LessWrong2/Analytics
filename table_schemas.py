@@ -133,7 +133,7 @@ table_creation_commands = {
         cancelled       BOOLEAN     NOT NULL,
         is_unvote       BOOLEAN     NOT NULL,
         af_power        smallint    NOT NULL,
-        legacy          BOOLEAN     NOT NULL,
+        author_ids      text,
         birth           timestamp
     );""",
     'views': """CREATE TABLE views
