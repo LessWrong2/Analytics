@@ -72,7 +72,6 @@ table_creation_commands = {
         comment_count                   numeric,
         num_comments_rederived          numeric,
         num_distinct_viewers            numeric,
-        num_distinct_commenters         numeric,
         num_votes                       numeric,
         small_upvote                    numeric,
         big_upvote                      numeric,
@@ -89,7 +88,6 @@ table_creation_commands = {
         frontpage_date                  timestamp,
         curated_date                    timestamp,
         status                          numeric,
-        legacy_spam                     BOOLEAN     NOT NULL,
         author_is_unreviewed            BOOLEAN     NOT NULL,
         most_recent_comment             timestamp,
         user_agent                      text,
@@ -175,7 +173,6 @@ table_creation_commands = {
     core              boolean,
     suggested_as_filter boolean,
     default_order      numeric,
-    promoted          boolean,
     birth               timestamp
 );""",
     'tagrels': """CREATE TABLE tagrels
@@ -208,7 +205,6 @@ table_creation_commands = {
     is_deleted         boolean,
     hidden             boolean,
     schema_version     smallint,
-    plaintext_description text,
     birth       timestamp
 );""",
     'urls': """CREATE TABLE urls

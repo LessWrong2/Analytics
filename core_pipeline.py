@@ -1,15 +1,10 @@
-import pandas as pd
-import datetime
-import matplotlib
 import numpy as np
 
-from pymongo import MongoClient
 import pathlib
 import html2text
 
 import os
 import shutil
-import configparser
 
 from plotly_ops import run_plotline
 from google_sheet_ops import *
@@ -196,9 +191,9 @@ def get_collection_cleaned(coll_name, conn,
     }
 
     if not votes_views_start_date:
-        votes_views_start_date = datetime.datetime.today() - datetime.timedelta(days=365 * 5)
+        votes_views_start_date = np.datetime64('today', 'D') - np.timedelta64(365 * 5, 'D')
     if type(votes_views_start_date) != str:
-        votes_views_start_date = votes_views_start_date.strftime('%Y-%m-%d')
+        votes_views_start_date = str(votes_views_start_date)
 
     query_filters = {
         'logins': " WHERE name = 'login'",
@@ -365,9 +360,6 @@ def clean_raw_posts(posts):
     Takes raw dataframe of posts collections and fixes datatypes and similar.
     Casting important for memory optimization.
     """
-
-    # posts = remove_mjx(posts)
-    # posts = convertContents2Body(posts)
 
     # ensure proper datetime encoding
     posts.loc[:, 'postedAt'] = pd.to_datetime(posts['postedAt'])
@@ -642,17 +634,6 @@ def enrich_posts(colls_dfs):
     views = get_valid_views(colls_dfs)
     users = get_valid_users(colls_dfs)
 
-
-    def num_commenters(commenters_list):
-        if commenters_list == commenters_list:  # check for isnan, works since nan == nan is false
-            if type(commenters_list) == str:
-                return len(
-                    [u.replace("'", '').replace('"', '').strip() for u in commenters_list.strip('[]').split(',')])
-            else:
-                return len(commenters_list)
-        else:
-            return 0
-
     # comment stats
     comment_stats = comments.groupby('postId').apply(lambda x: pd.Series(data={
         'num_comments_rederived': x['_id'].nunique(),
@@ -686,7 +667,6 @@ def enrich_posts(colls_dfs):
 
     # dfp['frontpageDate'] = dfp['frontpageDate'].replace(0, np.nan) #shouldn't be necessary, track upstream
     posts['frontpaged'] = posts['frontpageDate'].notnull()
-    posts['num_distinct_commenters'] = posts['commenters'].apply(num_commenters)
     posts['gw'] = posts['userAgent'].astype(str).str.contains('drakma', case=False).fillna(False)
 
     posts = users.set_index('_id')[['username', 'displayName']].merge(posts, left_index=True, right_on='userId',
@@ -717,7 +697,7 @@ def enrich_users(colls_dfs, date_str):
 
     users = colls_dfs['users']
 
-    date = datetime.datetime.strptime(date_str, '%Y%m%d')
+    date = pd.Timestamp(date_str).tz_localize('UTC')
 
     post_stats = calc_user_post_stats(colls_dfs)
     comment_stats = calc_user_comment_stats(colls_dfs)
@@ -733,16 +713,13 @@ def enrich_users(colls_dfs, date_str):
              .merge(recent_activity, left_on='_id', right_index=True, how='left')
              )
 
-    users['earliest_activity'] = users[['earliest_post', 'earliest_comment', 'earliest_vote', 'earliest_view']].min(
-        axis=1)
-    users['true_earliest'] = users[['earliest_activity', 'createdAt']].min(axis=1)
-    users['most_recent_activity'] = users[
-        ['most_recent_post', 'most_recent_comment', 'most_recent_vote', 'most_recent_view', 'createdAt']].max(axis=1)
+    users['earliest_activity'] = pd.to_datetime(users[['earliest_post', 'earliest_comment', 'earliest_vote', 'earliest_view']].T.min( axis=0).T)
+    users['true_earliest'] = pd.to_datetime(users[['earliest_activity', 'createdAt']].T.min(axis=0).T)
+    users['most_recent_activity'] = users[['most_recent_post', 'most_recent_comment', 'most_recent_vote', 'most_recent_view', 'createdAt']].T.max( axis=0).T
     users['days_since_active'] = np.nan
-    users.loc[users['most_recent_activity'].notnull(), 'days_since_active'] = ((date -
-            users.loc[users['most_recent_activity'].notnull(), 'most_recent_activity']).dt.total_seconds()/(86400)).round(1)
+    users.loc[users['most_recent_activity'].notnull(), 'days_since_active'] = ((date - users.loc[users[ 'most_recent_activity'].notnull(), 'most_recent_activity']).dt.total_seconds() / ( 86400)).round(1)
 
-    non_nan_columns = ['legacyKarma', 'karma', 'afKarma', 'postCount', 'commentCount',
+    non_nan_columns = ['karma', 'afKarma', 'postCount', 'commentCount',
        'frontpagePostCount', 'total_posts', 'total_comments', 'smallUpvote', 'smallDownvote',
        'bigUpvote', 'bigDownvote', 'num_votes', 'num_views', 'num_distinct_posts_viewed',
        'num_days_present_last_30_days', 'num_posts_last_30_days', 'num_comments_last_30_days', 'num_votes_last_30_days',

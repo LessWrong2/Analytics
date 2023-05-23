@@ -26,8 +26,11 @@ def clean_dataframe_text(df):
         df.loc[:, col] = df.loc[:, col].str.replace(pat, repl)
 
     for col in df.columns:
-        if pd.api.types.is_string_dtype(df[col]):
-            _ = [replace_strings(col, pat, repl) for pat, repl in [('\\', ''), ('\t', '  '), ('\n', '\\n'), ('\r', '\\r')]]
+        if pd.api.types.is_string_dtype(df[col]): #this line no longer works for detecting string type columsn and is including date columns...
+            try:
+                _ = [replace_strings(col, pat, repl) for pat, repl in [('\\', ''), ('\t', '  '), ('\n', '\\n'), ('\r', '\\r')]]
+            except Exception:
+                pass
 
     return df
 
@@ -106,7 +109,6 @@ def prepare_posts(dfp):
         'commentCount',
         'num_comments_rederived',
         'num_distinct_viewers',
-        'num_distinct_commenters',
         'num_votes',
         'smallUpvote',
         'bigUpvote',
@@ -186,7 +188,6 @@ def prepare_tags(tags):
         'core',
         'suggestedAsFilter',
         'defaultOrder',
-        'promoted',
     ]
 
     tags.loc[:,'postCount'] = tags.loc[:,'postCount'].fillna(0).astype(int)
@@ -204,7 +205,6 @@ def prepare_sequences(sequences):
         'isDeleted',
         'hidden',
         'schemaVersion',
-        'plaintextDescription',
     ]
 
     return sequences[sequences_sql_cols]

@@ -39,10 +39,7 @@ def get_collection(table_name, conn, projection=None, query_filter=None, limit=N
     if limit:
         query = query + ' LIMIT {}'.format(limit)
 
-    print(query)
-
     coll_df = pd.read_sql(query, conn)
-
 
     print_and_log('{} download completed at {}!'.format(table_name, datetime.datetime.today()))
 
