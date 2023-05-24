@@ -231,7 +231,7 @@ def get_collections_cleaned(coll_names=('comments', 'views', 'votes', 'posts', '
     For all collections in argument, downloads and cleans them.
     Returns a dict of dataframes.
     """
-    engine = get_pg_engine('dev_db')
+    engine = get_pg_engine(get_config_field('POSTGRESDBSOURCE', 'db'))
 
     with engine.begin() as conn:
         colls_dict = {name: get_collection_cleaned(name, conn, limit) for name in coll_names}
@@ -410,7 +410,6 @@ def clean_raw_votes(votes):
     votes.loc[:, 'voteType'] = votes['voteType'].astype('category')
     votes.loc[:, 'votedAt'] = pd.to_datetime(votes['votedAt'])
     votes.loc[:, 'userId'] = votes['userId'].astype(str)
-    # votes.loc[:, 'authorIds'] = votes['authorId'].astype(str)
     votes = votes.drop(columns=['_id']) # unnecessary and takes up 200Mb
 
     return votes
@@ -713,6 +712,8 @@ def enrich_users(colls_dfs, date_str):
              .merge(recent_activity, left_on='_id', right_index=True, how='left')
              )
 
+    # something weird changed here where the min function was no longer working when nans were present (just returned nan),
+    # but this only applies across columns (axis=1), but worked correctly over rows (axis=0), so hacky fix is transpose, get minimum, transpose back. Ugly, but it works.
     users['earliest_activity'] = pd.to_datetime(users[['earliest_post', 'earliest_comment', 'earliest_vote', 'earliest_view']].T.min( axis=0).T)
     users['true_earliest'] = pd.to_datetime(users[['earliest_activity', 'createdAt']].T.min(axis=0).T)
     users['most_recent_activity'] = users[['most_recent_post', 'most_recent_comment', 'most_recent_vote', 'most_recent_view', 'createdAt']].T.max( axis=0).T
@@ -747,7 +748,6 @@ def enrich_tagrels(colls_dfs):
                .merge(users.set_index('_id')[['displayName']], left_on='userId_post', right_index=True)
                .rename({'displayName': 'author'}, axis=1)
                )
-
 
     tagrels.loc[:,'voteCount'] = tagrels.loc[:,'voteCount'].fillna(0).astype(int)
     tagrels.loc[:,'afBaseScore'] = tagrels.loc[:,'afBaseScore'].fillna(0).astype(int)
