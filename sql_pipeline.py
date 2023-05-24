@@ -4,7 +4,7 @@ from pipeline_commands import pipeline_commands
 import logging
 import sys
 logging.basicConfig(filename='db_sql.log', level=logging.DEBUG)
-logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+# logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 @timed
 def attempt_sql_command(conn, command, name):

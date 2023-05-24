@@ -108,7 +108,6 @@ def create_and_update_posts_sheet(dfp, spreadsheet, num_rows=None):
         'viewCountLogged',
         'af',
         'curatedDate',
-        'wordCount'
     ]
 
     int_cols = ['num_comments_rederived', 'viewCountLogged', 'num_votes', 'num_distinct_viewers']

@@ -14,15 +14,7 @@ from pymongo.read_preferences import ReadPreference
 
 
 
-def get_mongo_db_object():
-    MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
-    MONGO_DB_URL = get_config_field('MONGODB', 'prod_db_url')
-    client = MongoClient(MONGO_DB_URL, read_preference=ReadPreference.SECONDARY, unicode_decode_error_handler='ignore')
-    db = client[MONGO_DB_NAME]
-    return db
-
-
-def get_collection(coll_name, db, projection=None, query_filter=None, limit=None):
+def get_collection(table_name, conn, projection=None, query_filter=None, limit=None):
     """
     Downloads and returns single collection from MongoDB and returns dataframe.
 
@@ -34,10 +26,22 @@ def get_collection(coll_name, db, projection=None, query_filter=None, limit=None
     if limit:
         kwargs.update({'limit':limit})
 
-    print_and_log('{} download started at {}. . .'.format(coll_name, datetime.datetime.today()))
-    coll_list = db[coll_name].find(query_filter, projection=projection, **kwargs)
-    coll_df = pd.DataFrame(list(coll_list))
-    print_and_log('{} download completed at {}!'.format(coll_name, datetime.datetime.today()))
+    print_and_log('{} download started at {}. . .'.format(table_name, datetime.datetime.today()))
+
+    columns = ", ".join(['"' + col + '"' for col in projection])
+    select_query = 'SELECT {columns} FROM "{table}"'.format(table=table_name, columns=columns)
+
+    if query_filter:
+        query = select_query + query_filter
+    else:
+        query = select_query
+
+    if limit:
+        query = query + ' LIMIT {}'.format(limit)
+
+    coll_df = pd.read_sql(query, conn)
+
+    print_and_log('{} download completed at {}!'.format(table_name, datetime.datetime.today()))
 
     return coll_df
 
@@ -118,7 +122,7 @@ def get_valid_users(dfs, required_minimum_posts_views=None):
 def get_valid_posts(dfs, required_upvotes=None):
     dfp = dfs['posts']
 
-    valid_posts = dfp[(~dfp['draft'])&(~dfp['legacySpam'])&(~dfp['authorIsUnreviewed'])&(dfp['status']==2)]
+    valid_posts = dfp[(~dfp['draft'])&(~dfp['authorIsUnreviewed'])&(dfp['status']==2)&(~dfp['rejected'])]
     if required_upvotes:
         return valid_posts[valid_posts[['smallUpvote', 'bigUpvote']].sum(axis=1) >= required_upvotes+1]
     else:
@@ -137,7 +141,7 @@ def get_valid_votes(dfs):
     dfc = dfs['comments']
     dfv = dfs['votes']
 
-    # removes self-votes
+    # removes self-votesf
     a = (dfv[(~dfv['cancelled'])&(dfv['collectionName'].isin(['Posts', 'Comments']))]
          .merge(dfp[['_id', 'userId']], left_on='documentId', right_on='_id', suffixes=['', '_post'], how='left'))
     b = a.merge(dfc[['_id', 'userId']], left_on='documentId', right_on='_id', suffixes=['', '_comment'], how='left')

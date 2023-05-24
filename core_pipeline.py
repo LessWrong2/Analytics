@@ -1,35 +1,27 @@
-import pandas as pd
-import datetime
-import matplotlib
 import numpy as np
 
-from pymongo import MongoClient
 import pathlib
 import html2text
 
 import os
 import shutil
-import configparser
 
-from plotly_ops import run_plotline
 from google_sheet_ops import *
 from karmametric import run_metric_pipeline
 from dash_aggregations import run_dash_aggregations_pipeline
-from postgres_ops import run_pg_pandas_transfer
+from postgres_ops import run_pg_pandas_transfer, get_pg_engine
 from google_analytics_ops import run_ga_pipeline
 from url_parsing import run_url_table_update
 from sql_pipeline import run_postgres_pipeline
 from utils import timed, print_and_log, get_config_field, get_valid_users, get_valid_posts, \
-    get_valid_comments, get_valid_votes, get_valid_views, get_collection, get_mongo_db_object
+    get_valid_comments, get_valid_votes, get_valid_views, get_collection
 
 
-MONGO_DB_NAME = get_config_field('MONGODB', 'db_name')
-MONGO_DB_URL = get_config_field('MONGODB', 'prod_db_url')
 BASE_PATH = get_config_field('PATHS','base')
 ENV = get_config_field('ENV', 'env')
 
 
-def get_collection_cleaned(coll_name, db,
+def get_collection_cleaned(coll_name, conn,
                            limit=None, votes_views_start_date=None):  # (name of collection, MongoDB object, read/write arg bundle) -> dataframe
     """
     Downloads, *processes* and returns single collection from MongoDB.
@@ -52,7 +44,6 @@ def get_collection_cleaned(coll_name, db,
             'userId',
             'title',
             'postedAt',
-            'excerpt',
             # 'contents', #not using at present, is large.
             'baseScore',
             'afBaseScore',
@@ -60,8 +51,6 @@ def get_collection_cleaned(coll_name, db,
             'viewCount',
             'clickCount',
             'commentCount',
-            'wordCount',
-            'commenters',
             'createdAt',
             'frontpageDate',
             'curatedDate',
@@ -74,12 +63,11 @@ def get_collection_cleaned(coll_name, db,
             'canonicalCollectionSlug',
             # 'moderationGuidelinesHtmlBody',
             # 'deleted', #there's only a single post with this flag, remove so as make sampling posts not fail
-            'legacySpam',
             'isEvent',
-            'plaintextExcerpt',
             'website',
             'authorIsUnreviewed',
-            'status'
+            'status',
+            'rejected'
         ],
         'comments': [
             '_id',
@@ -94,11 +82,9 @@ def get_collection_cleaned(coll_name, db,
             'deleted',
             'parentCommentId',
             'legacy',
-            'draft',
             'answer',
             'parentAnswerId',
             'userAgent',
-            'wordCount',
             # 'contents'
         ],
         'users': [
@@ -110,15 +96,11 @@ def get_collection_cleaned(coll_name, db,
             'commentCount',
             'frontpagePostCount',
             'karma',
-            'legacyKarma',
-            'bio',
             'deleted',
             'banned',
             'email',
             'legacy',
             'afKarma',
-            'moderationGuidelinesHtmlBody',
-            'subscribers',
             'shortformFeedId',
             'signUpReCaptchaRating',
             'reviewedByUserId',
@@ -126,19 +108,20 @@ def get_collection_cleaned(coll_name, db,
             'walledGardenInvite'
         ],
         'votes': [
+            '_id',
             'afPower',
             'collectionName',
             'documentId',
-            'legacy',
             'power',
             'userId',
             'voteType',
             'votedAt',
             'cancelled',
             'isUnvote',
-            'authorId'
+            'authorIds'
         ],
         'views': [
+            '_id',
             'userId',
             'documentId',
             'createdAt',
@@ -166,7 +149,6 @@ def get_collection_cleaned(coll_name, db,
             'core',
             'suggestedAsFilter',
             'defaultOrder',
-            'promoted'
         ],
         'tagrels': [
             'createdAt',
@@ -190,9 +172,6 @@ def get_collection_cleaned(coll_name, db,
             'isDeleted',
             'hidden',
             'schemaVersion',
-            'description',
-            'htmlDescription',
-            'plaintextDescription',
             'contents'
         ]
     }
@@ -210,26 +189,28 @@ def get_collection_cleaned(coll_name, db,
     }
 
     if not votes_views_start_date:
-        votes_views_start_date = datetime.datetime.today() - datetime.timedelta(days=365 * 5)
-    if type(votes_views_start_date) == str:
-        votes_views_start_date = pd.datetime(votes_views_start_date)
+        votes_views_start_date = np.datetime64('today', 'D') - np.timedelta64(365 * 5, 'D')
+    if type(votes_views_start_date) != str:
+        votes_views_start_date = str(votes_views_start_date)
 
     query_filters = {
-        'logins': {'name': 'login'},
-        'votes': {'votedAt': {'$gte': votes_views_start_date}},
-        'views': {'name': 'post-view', 'createdAt': {'$gte': votes_views_start_date}},
+        'logins': " WHERE name = 'login'",
+        'votes': " WHERE \"votedAt\" >= '{}'".format(votes_views_start_date),
+        'views': " WHERE name = 'post-view' AND \"createdAt\" >= '{}'".format(votes_views_start_date)
     }
 
     def name_check(coll_name):
         # ugly, but how else to do it?
         if coll_name in ('views', 'logins'):
-            return 'lwevents'
+            return 'LWEvents'
+        elif coll_name == 'tagrels':
+            return 'TagRels'
         else:
-            return coll_name
+            return coll_name.capitalize()
 
     raw_collection_df = get_collection(
-        db=db,
-        coll_name=name_check(coll_name),
+        conn=conn,
+        table_name=name_check(coll_name),
         projection=selected_columns[coll_name],
         query_filter=query_filters.get(coll_name),
         limit=limit
@@ -250,8 +231,11 @@ def get_collections_cleaned(coll_names=('comments', 'views', 'votes', 'posts', '
     For all collections in argument, downloads and cleans them.
     Returns a dict of dataframes.
     """
-    db = get_mongo_db_object()
-    colls_dict = {name: get_collection_cleaned(name, db, limit) for name in coll_names}
+    engine = get_pg_engine(get_config_field('POSTGRESDBSOURCE', 'db'))
+
+    with engine.begin() as conn:
+        colls_dict = {name: get_collection_cleaned(name, conn, limit) for name in coll_names}
+    engine.dispose()
 
     return colls_dict
 
@@ -375,9 +359,6 @@ def clean_raw_posts(posts):
     Casting important for memory optimization.
     """
 
-    # posts = remove_mjx(posts)
-    # posts = convertContents2Body(posts)
-
     # ensure proper datetime encoding
     posts.loc[:, 'postedAt'] = pd.to_datetime(posts['postedAt'])
     posts.loc[:, 'createdAt'] = pd.to_datetime(posts['createdAt'])
@@ -385,7 +366,7 @@ def clean_raw_posts(posts):
     # fill in missing values and cast to appropriate types
     for col in ['viewCount', 'clickCount', 'commentCount']:
         posts.loc[:, col] = posts.loc[:, col].fillna(0).astype(int)
-    for col in ['draft', 'legacy', 'af', 'question', 'legacySpam', 'isEvent']:
+    for col in ['draft', 'legacy', 'af', 'question', 'isEvent', 'rejected']:
         posts.loc[:, col] = posts.loc[:, col].fillna(False).astype(bool)
 
     return posts
@@ -407,7 +388,7 @@ def clean_raw_users(users):
     """
     users.loc[:, 'createdAt'] = pd.to_datetime(users['createdAt'])
     users.loc[:, 'afKarma'] = users['afKarma'].fillna(0)
-    for col in ['postCount', 'commentCount', 'frontpagePostCount', 'karma', 'legacyKarma']:
+    for col in ['postCount', 'commentCount', 'frontpagePostCount', 'karma']:
         users.loc[:, col] = users.loc[:, col].fillna(0).astype(int)
     for col in ['deleted', 'legacy', 'banned', 'hideWalledGardenUI', 'walledGardenInvite']:
         users.loc[:, col] = users.loc[:, col].fillna(False).astype(bool)
@@ -425,12 +406,10 @@ def clean_raw_votes(votes):
     votes.loc[:, 'isUnvote'] = votes['isUnvote'].fillna(False).astype(bool)
     votes.loc[:, 'afPower'] = votes['afPower'].fillna(0).astype('int8')
     votes.loc[:, 'collectionName'] = votes['collectionName'].astype('category')
-    votes.loc[:, 'legacy'] = votes['legacy'].fillna(False).astype(bool)
     votes.loc[:, 'power'] = votes['power'].astype('int8')
     votes.loc[:, 'voteType'] = votes['voteType'].astype('category')
     votes.loc[:, 'votedAt'] = pd.to_datetime(votes['votedAt'])
     votes.loc[:, 'userId'] = votes['userId'].astype(str)
-    votes.loc[:, 'authorId'] = votes['authorId'].astype(str)
     votes = votes.drop(columns=['_id']) # unnecessary and takes up 200Mb
 
     return votes
@@ -462,7 +441,7 @@ def clean_raw_tags(tags_df):
     tags_parsed = tags_df
 
     tags_parsed.loc[:, 'defaultOrder'] = tags_parsed.loc[:,'defaultOrder'].fillna(0)
-    for col in ['deleted', 'adminOnly', 'core', 'suggestedAsFilter', 'promoted']:
+    for col in ['deleted', 'adminOnly', 'core', 'suggestedAsFilter']:
         tags_parsed.loc[:, col] = tags_parsed.loc[:, col].fillna(False).astype(bool)
 
     return tags_parsed
@@ -473,6 +452,8 @@ def clean_raw_tagrels(tagrels_df):
     tagrels_parsed = tagrels_df
     for col in ['deleted', 'inactive']:
         tagrels_parsed.loc[:, col] = tagrels_parsed.loc[:, col].fillna(False).astype(bool)
+    for col in ['score', 'baseScore']:
+      tagrels_parsed[col] = tagrels_parsed[col].astype(int)
 
     return tagrels_parsed
 
@@ -652,17 +633,6 @@ def enrich_posts(colls_dfs):
     views = get_valid_views(colls_dfs)
     users = get_valid_users(colls_dfs)
 
-
-    def num_commenters(commenters_list):
-        if commenters_list == commenters_list:  # check for isnan, works since nan == nan is false
-            if type(commenters_list) == str:
-                return len(
-                    [u.replace("'", '').replace('"', '').strip() for u in commenters_list.strip('[]').split(',')])
-            else:
-                return len(commenters_list)
-        else:
-            return 0
-
     # comment stats
     comment_stats = comments.groupby('postId').apply(lambda x: pd.Series(data={
         'num_comments_rederived': x['_id'].nunique(),
@@ -696,7 +666,6 @@ def enrich_posts(colls_dfs):
 
     # dfp['frontpageDate'] = dfp['frontpageDate'].replace(0, np.nan) #shouldn't be necessary, track upstream
     posts['frontpaged'] = posts['frontpageDate'].notnull()
-    posts['num_distinct_commenters'] = posts['commenters'].apply(num_commenters)
     posts['gw'] = posts['userAgent'].astype(str).str.contains('drakma', case=False).fillna(False)
 
     posts = users.set_index('_id')[['username', 'displayName']].merge(posts, left_index=True, right_on='userId',
@@ -727,7 +696,7 @@ def enrich_users(colls_dfs, date_str):
 
     users = colls_dfs['users']
 
-    date = datetime.datetime.strptime(date_str, '%Y%m%d')
+    date = pd.Timestamp(date_str).tz_localize('UTC')
 
     post_stats = calc_user_post_stats(colls_dfs)
     comment_stats = calc_user_comment_stats(colls_dfs)
@@ -743,16 +712,15 @@ def enrich_users(colls_dfs, date_str):
              .merge(recent_activity, left_on='_id', right_index=True, how='left')
              )
 
-    users['earliest_activity'] = users[['earliest_post', 'earliest_comment', 'earliest_vote', 'earliest_view']].min(
-        axis=1)
-    users['true_earliest'] = users[['earliest_activity', 'createdAt']].min(axis=1)
-    users['most_recent_activity'] = users[
-        ['most_recent_post', 'most_recent_comment', 'most_recent_vote', 'most_recent_view', 'createdAt']].max(axis=1)
+    # something weird changed here where the min function was no longer working when nans were present (just returned nan),
+    # but this only applies across columns (axis=1), but worked correctly over rows (axis=0), so hacky fix is transpose, get minimum, transpose back. Ugly, but it works.
+    users['earliest_activity'] = pd.to_datetime(users[['earliest_post', 'earliest_comment', 'earliest_vote', 'earliest_view']].T.min( axis=0).T)
+    users['true_earliest'] = pd.to_datetime(users[['earliest_activity', 'createdAt']].T.min(axis=0).T)
+    users['most_recent_activity'] = users[['most_recent_post', 'most_recent_comment', 'most_recent_vote', 'most_recent_view', 'createdAt']].T.max( axis=0).T
     users['days_since_active'] = np.nan
-    users.loc[users['most_recent_activity'].notnull(), 'days_since_active'] = ((date -
-            users.loc[users['most_recent_activity'].notnull(), 'most_recent_activity']).dt.total_seconds()/(86400)).round(1)
+    users.loc[users['most_recent_activity'].notnull(), 'days_since_active'] = ((date - users.loc[users[ 'most_recent_activity'].notnull(), 'most_recent_activity']).dt.total_seconds() / ( 86400)).round(1)
 
-    non_nan_columns = ['legacyKarma', 'karma', 'afKarma', 'postCount', 'commentCount',
+    non_nan_columns = ['karma', 'afKarma', 'postCount', 'commentCount',
        'frontpagePostCount', 'total_posts', 'total_comments', 'smallUpvote', 'smallDownvote',
        'bigUpvote', 'bigDownvote', 'num_votes', 'num_views', 'num_distinct_posts_viewed',
        'num_days_present_last_30_days', 'num_posts_last_30_days', 'num_comments_last_30_days', 'num_votes_last_30_days',
@@ -780,7 +748,6 @@ def enrich_tagrels(colls_dfs):
                .merge(users.set_index('_id')[['displayName']], left_on='userId_post', right_index=True)
                .rename({'displayName': 'author'}, axis=1)
                )
-
 
     tagrels.loc[:,'voteCount'] = tagrels.loc[:,'voteCount'].fillna(0).astype(int)
     tagrels.loc[:,'afBaseScore'] = tagrels.loc[:,'afBaseScore'].fillna(0).astype(int)

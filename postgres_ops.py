@@ -26,8 +26,11 @@ def clean_dataframe_text(df):
         df.loc[:, col] = df.loc[:, col].str.replace(pat, repl)
 
     for col in df.columns:
-        if pd.api.types.is_string_dtype(df[col]):
-            _ = [replace_strings(col, pat, repl) for pat, repl in [('\\', ''), ('\t', '  '), ('\n', '\\n'), ('\r', '\\r')]]
+        if pd.api.types.is_string_dtype(df[col]): #this line no longer works for detecting string type columsn and is including date columns...
+            try:
+                _ = [replace_strings(col, pat, repl) for pat, repl in [('\\', ''), ('\t', '  '), ('\n', '\\n'), ('\r', '\\r')]]
+            except Exception:
+                pass
 
     return df
 
@@ -41,7 +44,6 @@ def prepare_users(dfu):
                       'commentCount',
                       'karma',
                       'afKarma',
-                      'legacyKarma',
                       'deleted',
                       'banned',
                       'legacy',
@@ -79,7 +81,6 @@ def prepare_users(dfu):
                       'num_distinct_posts_viewed_last_180_days',
                       'walledGardenInvite',
                       'hideWalledGardenUI',
-                      'bio',
                       'email']
 
     users = dfu.loc[:,users_sql_cols]
@@ -108,8 +109,6 @@ def prepare_posts(dfp):
         'commentCount',
         'num_comments_rederived',
         'num_distinct_viewers',
-        'num_distinct_commenters',
-        'wordCount',
         'num_votes',
         'smallUpvote',
         'bigUpvote',
@@ -126,7 +125,6 @@ def prepare_posts(dfp):
         'frontpageDate',
         'curatedDate',
         'status',
-        'legacySpam',
         'authorIsUnreviewed',
         'most_recent_comment',
         'userAgent',
@@ -152,7 +150,6 @@ def prepare_comments(dfc):
         'answer',
         'parentAnswerId',
         'parentCommentId',
-        'wordCount',
         'top_level',
         'gw',
         'num_votes',
@@ -177,6 +174,11 @@ def prepare_views(dpv):
     dpv.loc[:,'documentId'] = dpv.loc[:,'documentId'].str[0:25] #because of one stupid row
     dpv = dpv.sort_values('createdAt')
     return dpv
+  
+def prepare_votes(dpv):
+    dpv = dpv.sort_values('createdAt')
+    dpv.loc[:,'authorIds'] =  dpv.loc[:,'authorIds'].astype(str)
+    return dpv
 
 
 def prepare_tags(tags):
@@ -191,7 +193,6 @@ def prepare_tags(tags):
         'core',
         'suggestedAsFilter',
         'defaultOrder',
-        'promoted',
     ]
 
     tags.loc[:,'postCount'] = tags.loc[:,'postCount'].fillna(0).astype(int)
@@ -209,20 +210,27 @@ def prepare_sequences(sequences):
         'isDeleted',
         'hidden',
         'schemaVersion',
-        'plaintextDescription',
     ]
 
     return sequences[sequences_sql_cols]
 
 
-def get_pg_engine():
+def get_pg_engine(db='analytics'):
+
     config = configparser.ConfigParser()
     config.read('config.ini')
 
-    PG_ACCOUNT = config['POSTGRESDB']['pg_account']
-    PG_PASSWORD = config['POSTGRESDB']['pg_password']
-    PG_HOST = config['POSTGRESDB']['pg_host']
-    PG_DB_NAME = config['POSTGRESDB']['pg_db_name']
+    if db == 'analytics':
+        db_config_name = "POSTGRESANALYTICSDB"
+    elif db == 'prod_db':
+        db_config_name = "POSTGRESPRODDB"
+    elif db == 'dev_db':
+        db_config_name = "POSTGRESDEVDB"
+
+    PG_ACCOUNT = config[db_config_name]['pg_account']
+    PG_PASSWORD = config[db_config_name]['pg_password']
+    PG_HOST = config[db_config_name]['pg_host']
+    PG_DB_NAME = config[db_config_name]['pg_db_name']
 
     return sqa.create_engine('postgresql+psycopg2://{}:{}@{}/{}'.format(PG_ACCOUNT, PG_PASSWORD, PG_HOST, PG_DB_NAME))
 
