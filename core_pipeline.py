@@ -6,7 +6,6 @@ import html2text
 import os
 import shutil
 
-from plotly_ops import run_plotline
 from google_sheet_ops import *
 from karmametric import run_metric_pipeline
 from dash_aggregations import run_dash_aggregations_pipeline
@@ -67,7 +66,8 @@ def get_collection_cleaned(coll_name, conn,
             'isEvent',
             'website',
             'authorIsUnreviewed',
-            'status'
+            'status',
+            'rejected'
         ],
         'comments': [
             '_id',
@@ -366,7 +366,7 @@ def clean_raw_posts(posts):
     # fill in missing values and cast to appropriate types
     for col in ['viewCount', 'clickCount', 'commentCount']:
         posts.loc[:, col] = posts.loc[:, col].fillna(0).astype(int)
-    for col in ['draft', 'legacy', 'af', 'question', 'isEvent']:
+    for col in ['draft', 'legacy', 'af', 'question', 'isEvent', 'rejected']:
         posts.loc[:, col] = posts.loc[:, col].fillna(False).astype(bool)
 
     return posts
